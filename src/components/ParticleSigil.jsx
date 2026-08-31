@@ -24,12 +24,16 @@ export default function ParticleSigil({ currentShape, theoremId }) {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     const rect = canvas.parentElement.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = `${rect.width}px`;
+    canvas.style.height = `${rect.height}px`;
+    ctx.scale(dpr, dpr);
 
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
-    const baseRadius = canvas.width < 300 ? 70 : 90;
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const baseRadius = rect.width < 300 ? 70 : 90;
 
     class Particle {
       constructor(i) {
@@ -158,7 +162,7 @@ export default function ParticleSigil({ currentShape, theoremId }) {
     let frame = 0;
     const animate = () => {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, rect.width, rect.height);
 
       const p = particlesRef.current;
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
