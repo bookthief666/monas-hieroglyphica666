@@ -5,38 +5,51 @@ const prefersReducedMotion = () =>
   window.matchMedia &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+
 /**
  * useScrollDecrypt — the scrying engine of the kinetic typography.
  *
  * `initialReveal` is deliberately small and is used by Living Grimoire V to let
  * a theorem remember prior work: a worked Exegesis returns slightly less opaque,
  * never fully revealed and never bypassing the operator's scroll/gaze.
+ *
+ * The reveal is monotonic for one mounted register: once a character has been
+ * deciphered it does not re-encrypt when the pointer moves away. DOM geometry is
+ * sampled only in response to scroll/pointer/resize, rather than every animation
+ * frame, and React publication is capped to roughly 30 Hz.
  */
 export function useScrollDecrypt(ref, key, { initialReveal = 0, autoSeconds = 9 } = {}) {
   const baseReveal = Math.max(0, Math.min(0.35, Number(initialReveal) || 0));
   const [reveal, setReveal] = useState(baseReveal);
   const target = useRef(baseReveal);
   const current = useRef(baseReveal);
+  const published = useRef(baseReveal);
   const pointer = useRef({ x: -9999, y: -9999 });
-  const mountedAt = useRef(performance.now());
+  const mountedAt = useRef(nowMs());
   const raf = useRef(0);
+  const sampleRaf = useRef(0);
+  const lastPublishedAt = useRef(0);
 
   useEffect(() => {
     if (prefersReducedMotion()) {
       current.current = 1;
       target.current = 1;
+      published.current = 1;
       setReveal(1);
       return;
     }
     current.current = baseReveal;
     target.current = baseReveal;
-    mountedAt.current = performance.now();
+    published.current = baseReveal;
+    mountedAt.current = nowMs();
+    lastPublishedAt.current = 0;
     setReveal(baseReveal);
   }, [key, baseReveal]);
 
   const recompute = useCallback(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el || typeof window === 'undefined') return;
     const rect = el.getBoundingClientRect();
     const vh = window.innerHeight || 1;
 
@@ -51,35 +64,54 @@ export function useScrollDecrypt(ref, key, { initialReveal = 0, autoSeconds = 9 
     const dist = Math.sqrt(dx * dx + dy * dy);
     const proximity = Math.min(1, Math.max(0, 1 - dist / (rect.height / 2 + 340)));
 
-    const elapsed = (performance.now() - mountedAt.current) / 1000;
-    const autoProgress = Math.min(1, Math.max(0, (elapsed - 0.4) / Math.max(1, autoSeconds)));
-    const autoFloor = baseReveal + (1 - baseReveal) * autoProgress;
-
-    target.current = Math.max(baseReveal, scrollProg, proximity * 0.95, autoFloor);
-  }, [ref, baseReveal, autoSeconds]);
+    target.current = Math.max(target.current, baseReveal, scrollProg, proximity * 0.95);
+  }, [ref, baseReveal]);
 
   useEffect(() => {
-    if (prefersReducedMotion()) return;
+    if (prefersReducedMotion()) return undefined;
 
-    const onScroll = () => recompute();
-    const onPointer = (e) => {
-      pointer.current = { x: e.clientX, y: e.clientY };
-      recompute();
+    const requestSample = () => {
+      cancelAnimationFrame(sampleRaf.current);
+      sampleRaf.current = requestAnimationFrame(recompute);
     };
+
+    const onScroll = () => requestSample();
+    const onPointer = (event) => {
+      pointer.current = { x: event.clientX, y: event.clientY };
+      requestSample();
+    };
+
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll, { passive: true });
     window.addEventListener('pointermove', onPointer, { passive: true });
+    recompute();
 
-    const tick = () => {
-      recompute();
+    const tick = (now) => {
+      const elapsed = (now - mountedAt.current) / 1000;
+      const autoProgress = Math.min(1, Math.max(0, (elapsed - 0.4) / Math.max(1, autoSeconds)));
+      const autoFloor = baseReveal + (1 - baseReveal) * autoProgress;
+      target.current = Math.max(target.current, autoFloor);
+
       const t = target.current;
       const c = current.current;
-      current.current = c + (t - c) * (t > c ? 0.08 : 0.02);
-      if (Math.abs(current.current - reveal) > 0.002) {
-        setReveal(current.current);
+      current.current = c + (t - c) * 0.08;
+
+      const settled = current.current > 0.998 && t > 0.998;
+      const publishDelta = Math.abs(current.current - published.current);
+      if (settled || (publishDelta > 0.006 && now - lastPublishedAt.current >= 33)) {
+        const next = settled ? 1 : current.current;
+        published.current = next;
+        lastPublishedAt.current = now;
+        setReveal(next);
+      }
+
+      if (settled) {
+        raf.current = 0;
+        return;
       }
       raf.current = requestAnimationFrame(tick);
     };
+
     raf.current = requestAnimationFrame(tick);
 
     return () => {
@@ -87,9 +119,9 @@ export function useScrollDecrypt(ref, key, { initialReveal = 0, autoSeconds = 9 
       window.removeEventListener('resize', onScroll);
       window.removeEventListener('pointermove', onPointer);
       cancelAnimationFrame(raf.current);
+      cancelAnimationFrame(sampleRaf.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recompute, key]);
+  }, [recompute, key, autoSeconds, baseReveal]);
 
   return reveal;
 }
