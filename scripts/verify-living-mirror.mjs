@@ -24,6 +24,7 @@ import {
   rankConcordances,
 } from '../src/lib/ritualContinuity.js';
 import { deriveMirrorReturnState, mirrorReturnModes } from '../src/lib/mirrorReturnState.js';
+import { getSourceWitness, sourceWitnessTheoremIds } from '../src/lib/sourceWitness.js';
 
 const EXPECTED_FIELDS = Object.freeze({
   1: 'radial', 2: 'seed', 3: 'solar', 4: 'lunar', 5: 'harmonic', 6: 'axial',
@@ -42,10 +43,16 @@ function finiteObject(obj, path = 'value') {
 
 assert.equal(THEOREMS.length, 24, 'The Living Grimoire must contain exactly 24 theorems');
 assert.deepEqual(THEOREMS.map((theorem) => theorem.id), Array.from({ length: 24 }, (_, index) => index + 1));
+assert.deepEqual(sourceWitnessTheoremIds, Array.from({ length: 24 }, (_, index) => index + 1), 'Every theorem needs a 1564 source witness');
 assert.equal(new Set(supportedParticleShapes).size, supportedParticleShapes.length);
 assert.equal(new Set(projectionKinds).size, projectionKinds.length);
 assert.equal(new Set(mirrorReturnModes).size, mirrorReturnModes.length);
 assert.ok(recoveredProjectionRelics.length >= 3, 'Recovered geometry reliquary must preserve displaced forms');
+assert.deepEqual(
+  recoveredProjectionRelics.map((relic) => relic.theoremId).sort((a, b) => a - b),
+  [5, 9, 20],
+  'The intentionally displaced V, IX, and XX geometries must remain preserved as explicit reliquary witnesses',
+);
 
 const pristineReturn = deriveMirrorReturnState(1, deriveRitualContinuity());
 assert.equal(pristineReturn.active, false, 'An untouched theorem must not invent an under-glass memory imprint');
@@ -58,11 +65,22 @@ let verifiedProjections = 0;
 let continuityCases = 0;
 let memoryImprintCases = 0;
 let mirrorReturnCases = 0;
+let sourceWitnessCases = 0;
 
 for (const theorem of THEOREMS) {
   const { id: theoremId, shape } = theorem;
   assert.ok(shape, `Theorem ${theoremId} has no particle shape`);
   assert.ok(supportedParticleShapes.includes(shape), `Theorem ${theoremId} uses unsupported particle shape ${shape}`);
+
+  const witness = getSourceWitness(theoremId);
+  assert.equal(witness.theoremId, theoremId);
+  assert.equal(witness.year, 1564);
+  assert.ok(witness.latinIncipit.length > 24, `Theorem ${theoremId} needs a meaningful normalized Latin incipit`);
+  assert.match(witness.latinIncipit, /[A-Za-z]/);
+  assert.match(witness.facsimileUrl, /^https:\/\//);
+  assert.match(witness.catalogueUrl, /^https:\/\//);
+  assert.match(witness.transcriptionNote, /Normalized Latin incipit/);
+  sourceWitnessCases += 1;
 
   const spec = getManifestationSpec(theoremId, shape);
   assert.equal(spec.theoremId, theoremId);
@@ -198,6 +216,7 @@ assert.equal(verifiedProjections, 48);
 assert.equal(continuityCases, 72, 'Every theorem must carry continuity into Exegesis, Operatio, and Anatomia');
 assert.equal(memoryImprintCases, 24, 'Every theorem memory must map to bounded ladder residue');
 assert.equal(mirrorReturnCases, 24, 'Every worked theorem must map to a bounded under-glass return state');
+assert.equal(sourceWitnessCases, 24, 'Every theorem must carry a normalized 1564 witness');
 assert.equal(readMirrorMemory(), null, 'Mirror memory must be safe in non-browser verification');
 
 const appSource = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
@@ -207,6 +226,10 @@ const returnImprintSource = readFileSync(new URL('../src/components/MirrorReturn
 const thresholdSource = readFileSync(new URL('../src/components/Threshold.jsx', import.meta.url), 'utf8');
 const navSource = readFileSync(new URL('../src/components/TheoremNav.jsx', import.meta.url), 'utf8');
 const scholarSource = readFileSync(new URL('../src/components/ScholarMargin.jsx', import.meta.url), 'utf8');
+const exegesisSealSource = readFileSync(new URL('../src/components/ExegesisSeal.jsx', import.meta.url), 'utf8');
+const reliquarySource = readFileSync(new URL('../src/components/ReliquaryIllumination.jsx', import.meta.url), 'utf8');
+const sourceWitnessSource = readFileSync(new URL('../src/components/SourceWitness.jsx', import.meta.url), 'utf8');
+const marginaliaSource = readFileSync(new URL('../src/components/LivingMarginalia.jsx', import.meta.url), 'utf8');
 assert.match(appSource, /queryFlag\('force2d'\)/, 'The clean candidate must retain the explicit 2D QA escape hatch');
 assert.match(appSource, /renderer-diagnostic/, 'Renderer diagnostics must remain opt-in and available');
 assert.match(appSource, /monas:ritual-register/, 'Register crossings must emit continuity events');
@@ -219,10 +242,16 @@ assert.match(returnImprintSource, /deriveMirrorReturnState/, 'The mirror return 
 assert.match(thresholdSource, /Re-enter the Work/, 'The Threshold must distinguish first initiation from return');
 assert.match(navSource, /theorem-memory-orbit/, 'The theorem ladder must retain non-gamified ritual residue');
 assert.match(scholarSource, /rankConcordances/, 'Scholar\'s Margin must be able to foreground operation-resonant concordances');
+assert.match(exegesisSealSource, /ReliquaryIllumination/, 'Verbum must visibly restore the recovered animated geometry reliquary');
+assert.match(exegesisSealSource, /SourceWitness/, 'Verbum must expose the historical text witness without adding a fifth register');
+assert.match(reliquarySource, /projection\.relic/, 'The reliquary plate must explicitly identify deliberately displaced legacy forms');
+assert.match(reliquarySource, /LivingMarginalia/, 'The recovered plate must carry living manuscript marginalia');
+assert.match(sourceWitnessSource, /1564 Witness/, 'The source layer must clearly distinguish the 1564 witness');
+assert.match(marginaliaSource, /stageForTheorem/, 'Living marginalia must inherit the theorem\'s alchemical stage rather than use arbitrary color');
 
 console.log(
-  `Living Grimoire VII verifier PASS: 24 canonical theorems, ${verifiedProjections} secondary projections, `
+  `Living Grimoire IX verifier PASS: 24 canonical theorems, ${verifiedProjections} secondary projections, ${sourceWitnessCases} source witnesses, `
   + `${continuityCases} continuity register cases, ${memoryImprintCases} ladder-memory cases, ${mirrorReturnCases} shew-stone return states, `
   + `${sampledTargets} particle targets, ${sampledSkeletonPoints} skeleton points, ${sampledRoles} role targets, `
-  + `${recoveredProjectionRelics.length} recovered relic geometries, returning Threshold + register metamorphosis + under-glass memory locked.`,
+  + `${recoveredProjectionRelics.length} recovered relic geometries, source-critical Verbum + living codex reliquary locked.`,
 );
