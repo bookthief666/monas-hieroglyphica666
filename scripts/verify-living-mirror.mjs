@@ -9,6 +9,11 @@ import {
   singularityAnchors,
 } from '../src/lib/mirrorGeometry.js';
 import { readMirrorMemory } from '../src/lib/mirrorMemory.js';
+import {
+  getProjectionSpec,
+  projectionKinds,
+  recoveredProjectionRelics,
+} from '../src/lib/projectionSpec.js';
 
 const EXPECTED_FIELDS = Object.freeze({
   1: 'radial',
@@ -52,10 +57,13 @@ assert.deepEqual(
   'Theorem ids must remain the contiguous Dee sequence I–XXIV',
 );
 assert.equal(new Set(supportedParticleShapes).size, supportedParticleShapes.length, 'Supported particle shapes must be unique');
+assert.equal(new Set(projectionKinds).size, projectionKinds.length, 'Secondary projection kinds must be unique');
+assert.ok(recoveredProjectionRelics.length >= 3, 'Recovered geometry reliquary must preserve displaced forms');
 
 let sampledTargets = 0;
 let sampledSkeletonPoints = 0;
 let sampledRoles = 0;
+let verifiedProjections = 0;
 
 for (const theorem of THEOREMS) {
   const { id: theoremId, shape } = theorem;
@@ -84,6 +92,12 @@ for (const theorem of THEOREMS) {
   assert.ok(spec.operative.mode.length > 0);
   assert.ok(spec.operative.holdMs >= 200 && spec.operative.holdMs <= 1000);
   assert.ok(spec.operative.chargeMs >= 400 && spec.operative.chargeMs <= 2000);
+
+  const projection = getProjectionSpec(theoremId);
+  assert.equal(projection.theoremId, theoremId);
+  assert.ok(projectionKinds.includes(projection.echo), `Theorem ${theoremId} has unsupported echo projection ${projection.echo}`);
+  assert.ok(projectionKinds.includes(projection.operative), `Theorem ${theoremId} has unsupported operative projection ${projection.operative}`);
+  verifiedProjections += 2;
 
   const count = 360;
   for (let index = 0; index < count; index += 1) {
@@ -127,9 +141,11 @@ assert.equal(
   supportedParticleShapes.length,
   'Supported particle geometry catalog must match the 24 live theorem shapes exactly',
 );
+assert.equal(verifiedProjections, 48, 'Every theorem must have one echo and one operative projection');
 assert.equal(readMirrorMemory(), null, 'Mirror memory must be safe in non-browser verification');
 
 console.log(
-  `Living Black Mirror verifier PASS: 24/24 theorem shapes supported, ${sampledTargets} particle targets, `
-  + `${sampledSkeletonPoints} skeleton points, ${sampledRoles} role targets, semantic field map locked.`,
+  `Living Black Mirror verifier PASS: 24/24 canonical theorem shapes, ${verifiedProjections} secondary projections, `
+  + `${sampledTargets} particle targets, ${sampledSkeletonPoints} skeleton points, ${sampledRoles} role targets, `
+  + `${recoveredProjectionRelics.length} recovered relic geometries, semantic field map locked.`,
 );
