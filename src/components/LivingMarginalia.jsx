@@ -1,5 +1,6 @@
 import React from 'react';
 import { getProjectionSpec } from '../lib/projectionSpec.js';
+import { stageForTheorem } from '../lib/stages.js';
 
 const BASE_GLYPHS = Object.freeze(['☉', '☾', '☿', '♈', '✶', '✧', '△', '□', '◯', '✚', '🜂', '🜄', '🜁', '🜃']);
 
@@ -30,9 +31,10 @@ const STAGE_GLYPHS = Object.freeze({
   rubedo: ['☉', '🜂', '✶'],
 });
 
-export default function LivingMarginalia({ theoremId, stage = 'nigredo', viewMode = 'theorem' }) {
+export default function LivingMarginalia({ theoremId, stage = null, viewMode = 'theorem' }) {
+  const resolvedStage = stage || stageForTheorem(theoremId).id;
   const projection = getProjectionSpec(theoremId);
-  const stageGlyphs = STAGE_GLYPHS[stage] || STAGE_GLYPHS.nigredo;
+  const stageGlyphs = STAGE_GLYPHS[resolvedStage] || STAGE_GLYPHS.nigredo;
   const symbols = [
     KIND_GLYPHS[projection.echo] || '✧',
     KIND_GLYPHS[projection.operative] || '✶',
@@ -42,7 +44,7 @@ export default function LivingMarginalia({ theoremId, stage = 'nigredo', viewMod
 
   return (
     <div
-      className={`living-marginalia living-marginalia-${stage} living-marginalia-view-${viewMode}`}
+      className={`living-marginalia living-marginalia-${resolvedStage} living-marginalia-view-${viewMode}`}
       data-theorem={theoremId}
       aria-hidden="true"
     >
