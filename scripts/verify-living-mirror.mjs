@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
+import { THEOREMS } from '../src/data/theorems.js';
 import { getManifestationSpec, manifestationFields } from '../src/lib/manifestationSpec.js';
-import { targetForParticle } from '../src/lib/particleGeometry.js';
+import { supportedParticleShapes, targetForParticle } from '../src/lib/particleGeometry.js';
 import {
   buildSkeletonSegments,
   particleRole,
@@ -9,30 +10,32 @@ import {
 } from '../src/lib/mirrorGeometry.js';
 import { readMirrorMemory } from '../src/lib/mirrorMemory.js';
 
-const SHAPES = [
-  'line-circle',
-  'point-line-circle',
-  'sun-earth',
-  'sun-moon',
-  'cross-rotated',
-  'cross-quaternary',
-  'triangle-fire',
-  'square-circle',
-  'aries-cross',
-  'metatron',
-  'icosahedron',
-  'torus',
-  'sri-yantra',
-  'pentagram',
-  'sacred-252',
-  'monad-full',
-  'hermetic-egg',
-  'sephiroth',
-  'albedo-rubedo',
-  'radiance',
-  'hypercube-stone',
-  'infinite-spiral',
-];
+const EXPECTED_FIELDS = Object.freeze({
+  1: 'radial',
+  2: 'seed',
+  3: 'solar',
+  4: 'lunar',
+  5: 'harmonic',
+  6: 'axial',
+  7: 'radiant',
+  8: 'lattice',
+  9: 'radial',
+  10: 'radiant',
+  11: 'harmonic',
+  12: 'lunar',
+  13: 'toroidal',
+  14: 'yantric',
+  15: 'monadic',
+  16: 'axial',
+  17: 'stellar',
+  18: 'egg',
+  19: 'sephirothic',
+  20: 'harmonic',
+  21: 'lunar',
+  22: 'radiant',
+  23: 'hypercube',
+  24: 'spiral',
+});
 
 function finiteObject(obj, path = 'value') {
   for (const [key, value] of Object.entries(obj)) {
@@ -42,10 +45,35 @@ function finiteObject(obj, path = 'value') {
   }
 }
 
-for (let theoremId = 1; theoremId <= 24; theoremId += 1) {
-  const spec = getManifestationSpec(theoremId);
+assert.equal(THEOREMS.length, 24, 'The Living Grimoire must contain exactly 24 theorems');
+assert.deepEqual(
+  THEOREMS.map((theorem) => theorem.id),
+  Array.from({ length: 24 }, (_, index) => index + 1),
+  'Theorem ids must remain the contiguous Dee sequence I–XXIV',
+);
+assert.equal(new Set(supportedParticleShapes).size, supportedParticleShapes.length, 'Supported particle shapes must be unique');
+
+let sampledTargets = 0;
+let sampledSkeletonPoints = 0;
+let sampledRoles = 0;
+
+for (const theorem of THEOREMS) {
+  const { id: theoremId, shape } = theorem;
+  assert.ok(shape, `Theorem ${theoremId} has no particle shape`);
+  assert.ok(
+    supportedParticleShapes.includes(shape),
+    `Theorem ${theoremId} uses unsupported particle shape ${shape}`,
+  );
+
+  const spec = getManifestationSpec(theoremId, shape);
   assert.equal(spec.theoremId, theoremId);
+  assert.equal(spec.shape, shape);
   assert.ok(manifestationFields.includes(spec.field), `Theorem ${theoremId} has an unknown field`);
+  assert.equal(
+    spec.field,
+    EXPECTED_FIELDS[theoremId],
+    `Theorem ${theoremId} field drifted from its audited semantic law`,
+  );
   finiteObject(spec, `theorem[${theoremId}]`);
   assert.ok(spec.physics.radius > 0);
   assert.ok(spec.physics.spring > 0);
@@ -56,21 +84,17 @@ for (let theoremId = 1; theoremId <= 24; theoremId += 1) {
   assert.ok(spec.operative.mode.length > 0);
   assert.ok(spec.operative.holdMs >= 200 && spec.operative.holdMs <= 1000);
   assert.ok(spec.operative.chargeMs >= 400 && spec.operative.chargeMs <= 2000);
-}
 
-let sampledTargets = 0;
-let sampledSkeletonPoints = 0;
-for (const shape of SHAPES) {
-  const theoremId = (SHAPES.indexOf(shape) % 24) + 1;
-  for (let i = 0; i < 320; i += 1) {
-    const point = targetForParticle(shape, i, 320, 140, 140, 78, theoremId);
-    assert.ok(Number.isFinite(point.x), `${shape}[${i}].x is not finite`);
-    assert.ok(Number.isFinite(point.y), `${shape}[${i}].y is not finite`);
-    assert.ok(Math.abs(point.x) < 1000 && Math.abs(point.y) < 1000, `${shape}[${i}] escaped the mirror`);
+  const count = 360;
+  for (let index = 0; index < count; index += 1) {
+    const point = targetForParticle(shape, index, count, 140, 140, 78, theoremId);
+    assert.ok(Number.isFinite(point.x), `${shape}[${index}].x is not finite`);
+    assert.ok(Number.isFinite(point.y), `${shape}[${index}].y is not finite`);
+    assert.ok(Math.abs(point.x) < 1000 && Math.abs(point.y) < 1000, `${shape}[${index}] escaped the mirror`);
     sampledTargets += 1;
   }
 
-  const skeleton = buildSkeletonSegments(shape, 140, 140, 78, theoremId, 224);
+  const skeleton = buildSkeletonSegments(shape, 140, 140, 78, theoremId, 320);
   assert.ok(skeleton.length > 0, `${shape} produced no skeleton segments`);
   for (const segment of skeleton) {
     assert.ok(segment.length > 1, `${shape} produced a one-point skeleton segment`);
@@ -87,19 +111,25 @@ for (const shape of SHAPES) {
   });
 
   const roles = new Set();
-  for (let i = 0; i < 320; i += 1) {
-    const role = particleRole(i, theoremId);
+  for (let index = 0; index < count; index += 1) {
+    const role = particleRole(index, theoremId);
     roles.add(role);
-    const base = targetForParticle(shape, i, 320, 140, 140, 78, theoremId);
-    const target = roleTarget(role, base, i, theoremId, 78, anchors);
+    const base = targetForParticle(shape, index, count, 140, 140, 78, theoremId);
+    const target = roleTarget(role, base, index, theoremId, 78, anchors);
     assert.ok(Number.isFinite(target.x) && Number.isFinite(target.y), `${shape} ${role} target is not finite`);
+    sampledRoles += 1;
   }
   assert.deepEqual([...roles].sort(), ['aether', 'singularity', 'structural']);
 }
 
+assert.equal(
+  new Set(THEOREMS.map((theorem) => theorem.shape)).size,
+  supportedParticleShapes.length,
+  'Supported particle geometry catalog must match the 24 live theorem shapes exactly',
+);
 assert.equal(readMirrorMemory(), null, 'Mirror memory must be safe in non-browser verification');
 
 console.log(
-  `Living Black Mirror verifier PASS: 24 theorem fields, ${SHAPES.length} geometries, `
-  + `${sampledTargets} particle targets, ${sampledSkeletonPoints} skeleton points, role/anchor/operative invariants.`,
+  `Living Black Mirror verifier PASS: 24/24 theorem shapes supported, ${sampledTargets} particle targets, `
+  + `${sampledSkeletonPoints} skeleton points, ${sampledRoles} role targets, semantic field map locked.`,
 );
