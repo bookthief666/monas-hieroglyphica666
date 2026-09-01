@@ -36,6 +36,82 @@
   animation: ritual-memory-breath 8s ease-in-out infinite alternate;
 }
 
+.mirror-return-imprint {
+  --mirror-return-opacity: 0;
+  --mirror-return-rotation: 0deg;
+  --mirror-return-scale: 1;
+  --mirror-return-direction: 1;
+  --mirror-return-pulse: 0.2;
+  position: absolute;
+  inset: 8.5%;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: var(--mirror-return-opacity);
+  mix-blend-mode: screen;
+  mask-image: radial-gradient(circle at center, #000 0 58%, rgba(0,0,0,0.86) 72%, transparent 97%);
+  -webkit-mask-image: radial-gradient(circle at center, #000 0 58%, rgba(0,0,0,0.86) 72%, transparent 97%);
+}
+
+.mirror-return-projection {
+  width: 84%;
+  height: 84%;
+  opacity: 0.54;
+  transform: rotate(var(--mirror-return-rotation)) scale(var(--mirror-return-scale));
+  transform-origin: center;
+  filter: blur(0.18px) drop-shadow(0 0 8px rgba(255, 223, 115, 0.2));
+}
+
+.mirror-return-circulation .mirror-return-projection,
+.mirror-return-winding .mirror-return-projection {
+  animation: mirror-return-turn 18s linear infinite;
+}
+
+.mirror-return-winding .mirror-return-projection {
+  animation-duration: 22s;
+}
+
+.mirror-return-projection .sigil-flat-group,
+.mirror-return-projection .sigil-3d-group {
+  transform-origin: 50px 50px;
+}
+
+.mirror-return-projection .sigil-3d-group {
+  animation: mirror-return-projection-depth 8s ease-in-out infinite alternate;
+}
+
+.mirror-return-lensing .mirror-return-projection {
+  animation: mirror-return-lens 9s ease-in-out infinite alternate;
+}
+
+.mirror-return-radiance .mirror-return-projection,
+.mirror-return-flare .mirror-return-projection,
+.mirror-return-stellar .mirror-return-projection {
+  animation: mirror-return-radiance 6.5s ease-in-out infinite alternate;
+}
+
+.mirror-return-path .mirror-return-projection,
+.mirror-return-resonance .mirror-return-projection {
+  animation: mirror-return-resonance 7.5s ease-in-out infinite alternate;
+}
+
+.mirror-return-collapse .mirror-return-projection,
+.mirror-return-coagula .mirror-return-projection,
+.mirror-return-gestation .mirror-return-projection {
+  animation: mirror-return-breathe 10s ease-in-out infinite alternate;
+}
+
+.mirror-return-axial .mirror-return-projection,
+.mirror-return-crystal .mirror-return-projection,
+.mirror-return-facet .mirror-return-projection,
+.mirror-return-opposition .mirror-return-projection,
+.mirror-return-cohere .mirror-return-projection {
+  animation: mirror-return-structure 11s ease-in-out infinite alternate;
+}
+
 .ritual-register-received {
   position: relative;
 }
@@ -162,6 +238,42 @@
   to { transform: rotate(var(--ritual-direction-angle)) scale(1.012); opacity: 0.58; }
 }
 
+@keyframes mirror-return-turn {
+  from { transform: rotate(var(--mirror-return-rotation)) scale(var(--mirror-return-scale)); }
+  to { transform: rotate(calc(var(--mirror-return-rotation) + 360deg * var(--mirror-return-direction))) scale(var(--mirror-return-scale)); }
+}
+
+@keyframes mirror-return-projection-depth {
+  from { transform: rotate(-1.5deg) scaleX(0.97) scaleY(1.01); opacity: 0.48; }
+  to { transform: rotate(1.5deg) scaleX(1.02) scaleY(0.98); opacity: 0.72; }
+}
+
+@keyframes mirror-return-lens {
+  from { transform: translateX(-1.4%) rotate(var(--mirror-return-rotation)) scale(0.985); opacity: 0.44; }
+  to { transform: translateX(1.4%) rotate(var(--mirror-return-rotation)) scale(1.015); opacity: 0.68; }
+}
+
+@keyframes mirror-return-radiance {
+  from { transform: rotate(var(--mirror-return-rotation)) scale(0.97); opacity: 0.38; }
+  to { transform: rotate(var(--mirror-return-rotation)) scale(1.04); opacity: 0.74; }
+}
+
+@keyframes mirror-return-resonance {
+  from { transform: rotate(var(--mirror-return-rotation)) scale(0.99); opacity: 0.42; }
+  50% { transform: rotate(var(--mirror-return-rotation)) scale(1.025); opacity: 0.72; }
+  to { transform: rotate(var(--mirror-return-rotation)) scale(1); opacity: 0.48; }
+}
+
+@keyframes mirror-return-breathe {
+  from { transform: rotate(var(--mirror-return-rotation)) scale(0.965); opacity: 0.42; }
+  to { transform: rotate(var(--mirror-return-rotation)) scale(1.02); opacity: 0.66; }
+}
+
+@keyframes mirror-return-structure {
+  from { transform: rotate(calc(var(--mirror-return-rotation) - 1deg)) scale(0.995); opacity: 0.46; }
+  to { transform: rotate(calc(var(--mirror-return-rotation) + 1deg)) scale(1.008); opacity: 0.64; }
+}
+
 @keyframes register-metamorphosis-shell {
   0% { opacity: 0; transform: scale(0.92); }
   18% { opacity: 0.72; }
@@ -200,7 +312,8 @@
 @media (prefers-reduced-motion: reduce) {
   .ritual-return-shell.is-remembered::after,
   .theorem-memory-orbit,
-  .threshold-memory-projection {
+  .threshold-memory-projection,
+  .mirror-return-projection {
     animation: none !important;
   }
 
