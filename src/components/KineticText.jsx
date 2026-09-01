@@ -1,9 +1,6 @@
 import React, { useRef } from 'react';
 import { useScrollDecrypt } from '../lib/useScrollDecrypt.js';
 
-// The aether-alphabet: alchemical/astrological glyphs and Greek capitals that
-// the truth resolves out of. Truth is "pulled from the aether" by the operator's
-// own scroll and gaze — not handed over on a timer.
 const CIPHER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZΛΔΘΞΠΣΦΨΩ☿🜍☾☉🜁🜔🜃✶✷';
 
 const scramble = (s) =>
@@ -12,10 +9,6 @@ const scramble = (s) =>
     .map((ch) => (ch === ' ' || ch === '\n' ? ch : CIPHER[(Math.random() * CIPHER.length) | 0]))
     .join('');
 
-/**
- * Render one paragraph with a left-to-right reveal: a clear prefix (truth already
- * scryed) followed by a still-ciphered suffix shimmering in the aether.
- */
 function Paragraph({ text, localThreshold }) {
   if (localThreshold >= text.length) {
     return <span className="kinetic-revealed">{text}</span>;
@@ -31,16 +24,9 @@ function Paragraph({ text, localThreshold }) {
   );
 }
 
-/**
- * KineticText — scroll/gaze-linked decrypting typography.
- *
- * @param {string} text        the truth to be revealed
- * @param {'theorem'|'exegesis'} variant
- * @param {any} revealKey      changes reset the decryption (theorem/view switch)
- */
-export default function KineticText({ text, variant = 'theorem', revealKey }) {
+export default function KineticText({ text, variant = 'theorem', revealKey, initialReveal = 0 }) {
   const ref = useRef(null);
-  const reveal = useScrollDecrypt(ref, revealKey);
+  const reveal = useScrollDecrypt(ref, revealKey, { initialReveal });
   const threshold = Math.round(reveal * text.length);
 
   if (variant === 'exegesis') {
@@ -50,7 +36,6 @@ export default function KineticText({ text, variant = 'theorem', revealKey }) {
       <div ref={ref} className="text-[var(--ink-gold)] font-roman leading-[1.8] space-y-6 text-xl md:text-2xl">
         {paragraphs.map((p, idx) => {
           const localThreshold = threshold - offset;
-          // +2 accounts for the consumed paragraph break in the offset accounting
           offset += p.length + 2;
           return (
             <p key={idx} className={idx === 0 ? '' : 'mt-4'}>
@@ -62,7 +47,6 @@ export default function KineticText({ text, variant = 'theorem', revealKey }) {
     );
   }
 
-  // theorem variant — illuminated drop-cap on the first letter
   const first = text.charAt(0);
   const rest = text.slice(1);
   const dropRevealed = threshold >= 1;
