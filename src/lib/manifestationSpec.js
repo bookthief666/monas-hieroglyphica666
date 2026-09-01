@@ -151,22 +151,86 @@ const FIELD_PRESETS = Object.freeze({
 });
 
 const THEOREM_FIELDS = Object.freeze({
-  1: 'radial', 2: 'seed', 3: 'solar', 4: 'lunar', 5: 'axial', 6: 'axial',
-  7: 'stellar', 8: 'lattice', 9: 'hypercube', 10: 'stellar', 11: 'harmonic',
-  12: 'polyhedral', 13: 'toroidal', 14: 'yantric', 15: 'monadic', 16: 'axial',
-  17: 'stellar', 18: 'egg', 19: 'sephirothic', 20: 'lattice', 21: 'lunar',
+  1: 'radial', 2: 'seed', 3: 'solar', 4: 'lunar', 5: 'harmonic', 6: 'axial',
+  7: 'radiant', 8: 'lattice', 9: 'radial', 10: 'radiant', 11: 'harmonic',
+  12: 'lunar', 13: 'toroidal', 14: 'yantric', 15: 'monadic', 16: 'axial',
+  17: 'stellar', 18: 'egg', 19: 'sephirothic', 20: 'harmonic', 21: 'lunar',
   22: 'radiant', 23: 'hypercube', 24: 'spiral',
 });
 
 const SHAPE_FIELD_HINTS = Object.freeze({
   'line-circle': 'radial', 'point-line-circle': 'seed', 'sun-earth': 'solar',
-  'sun-moon': 'lunar', 'cross-rotated': 'axial', 'cross-quaternary': 'axial',
-  'triangle-fire': 'radiant', 'square-circle': 'lattice', 'aries-cross': 'monadic',
-  metatron: 'lattice', icosahedron: 'polyhedral', torus: 'toroidal',
-  'sri-yantra': 'yantric', pentagram: 'stellar', 'sacred-252': 'yantric',
-  'monad-full': 'monadic', 'hermetic-egg': 'egg', sephiroth: 'sephirothic',
-  'albedo-rubedo': 'lunar', radiance: 'radiant', 'hypercube-stone': 'hypercube',
-  'infinite-spiral': 'spiral',
+  'sun-moon': 'lunar', 'cross-elements': 'harmonic', 'cross-rotated': 'axial',
+  'cross-quaternary': 'axial', 'triangle-fire': 'radiant', 'square-circle': 'lattice',
+  'four-elements': 'radial', 'aries-cross': 'radiant', metatron: 'harmonic',
+  icosahedron: 'polyhedral', torus: 'toroidal', 'sri-yantra': 'yantric',
+  pentagram: 'stellar', 'sacred-252': 'harmonic', 'monad-full': 'monadic',
+  'hermetic-egg': 'egg', sephiroth: 'sephirothic', 'albedo-rubedo': 'lunar',
+  radiance: 'radiant', 'hypercube-stone': 'hypercube', 'infinite-spiral': 'spiral',
+});
+
+const THEOREM_OVERRIDES = Object.freeze({
+  5: {
+    physics: { swirl: 0.48, spring: 0.0092, drift: 0.14 },
+    optics: { depth: 0.64, skeleton: 0.22, chroma: 0.27, caustic: 0.5 },
+    motion: { fieldRate: 1.16, hologramSeconds: 18 },
+    operative: { fieldGain: 1.48, spinGain: 1.34, releaseGain: 1.14 },
+  },
+  6: { optics: { skeleton: 0.24, engraving: 0.24 }, operative: { fieldGain: 1.58 } },
+  7: {
+    physics: { radius: 82, holdForce: 1.16, drift: 0.19 },
+    optics: { skeleton: 0.14, caustic: 0.7 },
+    operative: { fieldGain: 1.55, releaseGain: 1.62 },
+  },
+  8: { optics: { skeleton: 0.28, engraving: 0.27, depth: 0.49 } },
+  9: {
+    physics: { radius: 76, traceForce: 1.78, holdForce: 1.42, swirl: 0.12, spring: 0.0095 },
+    optics: { skeleton: 0.24, engraving: 0.2, depth: 0.61, caustic: 0.5 },
+    motion: { fieldRate: 0.82, hologramSeconds: 22 },
+    operative: { fieldGain: 1.46, releaseGain: 1.32 },
+  },
+  10: {
+    physics: { radius: 82, traceForce: 2.05, swirl: 0.34 },
+    optics: { caustic: 0.72, skeleton: 0.16, pulse: 0.66 },
+    operative: { fieldGain: 1.62, releaseGain: 1.68 },
+  },
+  11: { optics: { skeleton: 0.22, depth: 0.62 }, operative: { fieldGain: 1.42 } },
+  12: {
+    physics: { radius: 76, swirl: 0.46, spring: 0.0085 },
+    optics: { depth: 0.74, skeleton: 0.2, chroma: 0.2 },
+    motion: { fieldRate: 0.68, hologramSeconds: 28 },
+    operative: { fieldGain: 1.38, spinGain: 1.35 },
+  },
+  13: { optics: { depth: 0.76, skeleton: 0.18 }, operative: { spinGain: 1.95, fieldGain: 1.44 } },
+  14: { optics: { skeleton: 0.31, engraving: 0.32 }, operative: { fieldGain: 1.58 } },
+  15: { motion: { fieldRate: 1.02, hologramSeconds: 20 }, optics: { skeleton: 0.24 } },
+  16: { optics: { skeleton: 0.26, engraving: 0.25 }, operative: { fieldGain: 1.62 } },
+  17: { optics: { skeleton: 0.22, caustic: 0.61 }, operative: { fieldGain: 1.4 } },
+  18: { optics: { depth: 0.76, skeleton: 0.18 }, physics: { drift: 0.12 } },
+  19: {
+    physics: { spring: 0.014, drift: 0.07 },
+    optics: { skeleton: 0.32, engraving: 0.3, depth: 0.62 },
+    operative: { fieldGain: 1.68 },
+  },
+  20: {
+    physics: { spring: 0.0105, swirl: 0.24, drift: 0.12 },
+    optics: { skeleton: 0.25, engraving: 0.25, depth: 0.58 },
+    motion: { fieldRate: 0.84, hologramSeconds: 24 },
+    operative: { fieldGain: 1.48, releaseGain: 1.1 },
+  },
+  21: {
+    physics: { swirl: 0.58, drift: 0.18 },
+    optics: { chroma: 0.32, pulse: 0.48, skeleton: 0.17 },
+    motion: { fieldRate: 0.96, hologramSeconds: 19 },
+    operative: { fieldGain: 1.4, spinGain: 1.48 },
+  },
+  22: { optics: { skeleton: 0.1, caustic: 0.78 }, operative: { fieldGain: 1.75, releaseGain: 1.82 } },
+  23: { optics: { skeleton: 0.33, depth: 0.8 }, operative: { fieldGain: 1.62, spinGain: 1.42 } },
+  24: {
+    physics: { drift: 0.17, swirl: 0.91 },
+    optics: { caustic: 0.46, skeleton: 0.17, depth: 0.77 },
+    operative: { fieldGain: 1.48, spinGain: 2.08, releaseGain: 1.18 },
+  },
 });
 
 function mergeSpec(base, preset) {
@@ -185,7 +249,8 @@ export function getManifestationSpec(theoremId, shape) {
   const id = Number(theoremId) || 1;
   const field = THEOREM_FIELDS[id] || SHAPE_FIELD_HINTS[shape] || BASE.field;
   const preset = FIELD_PRESETS[field] || {};
-  const merged = mergeSpec(BASE, preset);
+  const familySpec = mergeSpec(BASE, preset);
+  const merged = mergeSpec(familySpec, THEOREM_OVERRIDES[id] || {});
   return {
     ...merged,
     theoremId: id,
