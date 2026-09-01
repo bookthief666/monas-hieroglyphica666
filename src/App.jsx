@@ -7,6 +7,7 @@ import { AudioEngine, MuteButton, RitualResonance } from './components/AudioEngi
 import ParticleSigil from './components/ParticleSigil.jsx';
 import ExegesisSeal from './components/ExegesisSeal.jsx';
 import SafeRitualApparition from './components/SafeRitualApparition.jsx';
+import RegisterMetamorphosis from './components/RegisterMetamorphosis.jsx';
 import KineticText from './components/KineticText.jsx';
 import ScholarMargin from './components/ScholarMargin.jsx';
 import ApplicationPanel from './components/ApplicationPanel.jsx';
@@ -114,9 +115,11 @@ export default function App() {
   const [item, setItem] = useState(THEOREMS[0]);
   const [transition, setTransition] = useState(false);
   const [viewMode, setViewMode] = useState('theorem');
+  const [registerTransition, setRegisterTransition] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
 
   const audioRef = useRef(null);
+  const registerTimerRef = useRef(null);
   const stage = stageForTheorem(item.id);
   const palette = getPalette(item.id);
   const ritual = useMirrorRitual(item.id);
@@ -127,6 +130,10 @@ export default function App() {
   useEffect(() => {
     document.title = `Monas Hieroglyphica — ${item.title}`;
   }, [item]);
+
+  useEffect(() => () => {
+    if (registerTimerRef.current) clearTimeout(registerTimerRef.current);
+  }, []);
 
   const startExperience = () => {
     if (audioRef.current) {
@@ -144,7 +151,17 @@ export default function App() {
   };
 
   const selectView = (nextView) => {
+    if (nextView === viewMode) return;
+
+    if (registerTimerRef.current) clearTimeout(registerTimerRef.current);
+    setRegisterTransition({
+      from: viewMode,
+      to: nextView,
+      key: `${item.id}-${viewMode}-${nextView}-${Date.now()}`,
+    });
+    registerTimerRef.current = setTimeout(() => setRegisterTransition(null), reducedMotion() ? 220 : 800);
     setViewMode(nextView);
+
     if (nextView !== 'theorem' && ritual.memoryCount > 0 && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('monas:ritual-register', {
         detail: continuityRegisterDetail(item.id, nextView, ritual),
@@ -154,6 +171,8 @@ export default function App() {
 
   const switchTheorem = (id) => {
     if (id === active || transition) return;
+    if (registerTimerRef.current) clearTimeout(registerTimerRef.current);
+    setRegisterTransition(null);
     setTransition(true);
     setTimeout(() => {
       setItem(THEOREMS.find((t) => t.id === id));
@@ -173,7 +192,7 @@ export default function App() {
       <RitualResonance muted={isMuted || !hasStarted} />
 
       {!hasStarted ? (
-        <Threshold onEnter={startExperience} />
+        <Threshold onEnter={startExperience} memory={ritual.memory} />
       ) : (
         <div className={`stage-${stage.id} stage-veil-transition min-h-screen relative flex flex-col items-center justify-start py-6 md:py-12 px-2 md:px-8`}>
           <MuteButton muted={isMuted} onToggle={toggleAudio} />
@@ -211,13 +230,20 @@ export default function App() {
             </header>
 
             <div className="flex justify-center w-full my-6 md:my-10 relative z-20 animate-float animate-pulse-glow">
-              <HeroSigil
-                theorem={item}
-                stage={stage.id}
-                continuity={continuity}
-                force2D={force2D}
-                diagnostics={diagnostics}
-              />
+              <div className="relative inline-grid place-items-center">
+                <HeroSigil
+                  theorem={item}
+                  stage={stage.id}
+                  continuity={continuity}
+                  force2D={force2D}
+                  diagnostics={diagnostics}
+                />
+                <RegisterMetamorphosis
+                  theoremId={item.id}
+                  transition={registerTransition}
+                  continuity={continuity}
+                />
+              </div>
             </div>
 
             <div className="flex justify-center gap-2 md:gap-4 mb-6 flex-wrap">
@@ -225,6 +251,7 @@ export default function App() {
                 <button
                   key={v.id}
                   onClick={() => selectView(v.id)}
+                  aria-pressed={viewMode === v.id}
                   className={`font-medieval text-xs md:text-sm tracking-[0.2em] uppercase px-3 md:px-5 py-2 rounded border transition-all ${
                     viewMode === v.id
                       ? 'border-[var(--ink-gold)] text-[var(--ink-gold)] glow-gold bg-[var(--ink-gold)]/5'
@@ -281,18 +308,18 @@ export default function App() {
                 )}
 
                 <div className="block lg:hidden mt-8 pt-8 border-t border-[#3a2e1d]/40 w-full">
-                  <ScholarMargin theorem={item} heading="Scholar's Margin" />
+                  <ScholarMargin theorem={item} heading="Scholar's Margin" continuity={continuity} />
                 </div>
               </article>
 
               <aside className="hidden lg:block pl-8 border-l border-[#3a2e1d]/40 pt-16 relative">
                 <div className="sticky top-20">
-                  <ScholarMargin theorem={item} heading="Scholar's Margin" />
+                  <ScholarMargin theorem={item} heading="Scholar's Margin" continuity={continuity} />
                 </div>
               </aside>
             </div>
 
-            <TheoremNav theorems={THEOREMS} active={active} onSelect={switchTheorem} />
+            <TheoremNav theorems={THEOREMS} active={active} onSelect={switchTheorem} memory={ritual.memory} />
           </main>
         </div>
       )}
