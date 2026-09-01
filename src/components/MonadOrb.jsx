@@ -4,55 +4,37 @@ import { Float, Line, Sphere, Torus, MeshTransmissionMaterial } from '@react-thr
 import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { getPalette } from '../data/palettes.js';
+import { getManifestationSpec } from '../lib/manifestationSpec.js';
 
-/*
- * ============================================================================
- * THE HIEROGLYPHIC MONAD AS A 3D BODY
- * ----------------------------------------------------------------------------
- * Dee's glyph is not flat — it is the compression of an entire cosmology.
- * Here we re-expand it into space so the operator can orbit the cosmos itself.
- * Each member is the geometric body of a specific theorem:
- *
- *   SOL     — a torus: the solar circle "having a visible centre" (Theorema III)
- *   PUNCTUM — a tiny emissive sphere at the origin: Earth / the central point (II)
- *   LUNA    — a swept crescent arc above Sol, "acknowledging the Sun" (Theorema IV)
- *   CRUX    — two orthogonal bars: the Ternary × Quaternary elemental cross (VI)
- *   ARIES   — twin parabolic horns "capturing the solar emanations" (Theorema XII)
- *
- * The whole assembly is enclosed in a glass/obsidian sphere — Dee's shew-stone —
- * so the operator looks THROUGH matter into the formal cause. Bloom and the
- * inner light scale with the alchemical `stage`, so the orb literally darkens
- * (Nigredo), purifies (Albedo), and blazes (Rubedo) across the 24 theorems.
- * ============================================================================
- */
-
-// Aries' twin horns: a small parabola opening upward, mirrored left/right.
 function ariesHorn(sign) {
   const pts = [];
   for (let i = 0; i <= 24; i++) {
     const x = (i / 24) * 0.55 * sign;
-    const y = -1.05 + (x * x) / 0.18; // parabola — the reflector that gathers pneuma
+    const y = -1.05 + (x * x) / 0.18;
     pts.push(new THREE.Vector3(x, y - 0.15, 0));
   }
   return pts;
 }
 
-function MonadBody({ palette, glow }) {
+function MonadBody({ palette, glow, spec }) {
   const group = useRef();
 
   useFrame((state, dt) => {
     if (!group.current) return;
-    // base hermetic rotation: the slow precession of the celestial vault
-    group.current.rotation.y += dt * 0.16;
-    // the "sympathetic magical link": the Monad tilts toward the operator's gaze,
-    // damped by lerp so it attends to the cursor rather than snapping at it.
+    const rate = spec.motion.fieldRate;
+    group.current.rotation.y += dt * (0.105 + rate * 0.045);
+
     const px = state.pointer.x;
     const py = state.pointer.y;
-    group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, py * 0.45, 0.05);
-    group.current.rotation.z = THREE.MathUtils.lerp(group.current.rotation.z, -px * 0.25, 0.05);
+    const gaze = spec.field === 'lunar' ? 0.58 : spec.field === 'hypercube' ? 0.34 : 0.45;
+    group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, py * gaze, 0.05);
+    group.current.rotation.z = THREE.MathUtils.lerp(group.current.rotation.z, -px * (0.18 + rate * 0.05), 0.05);
+
+    if (spec.field === 'toroidal' || spec.field === 'spiral') {
+      group.current.rotation.y += dt * 0.04 * rate;
+    }
   });
 
-  // LUNA — a partial sweep (a crescent, not a full ring) resting above Sol.
   const lunaCurve = useMemo(() => {
     const pts = [];
     for (let i = 0; i <= 48; i++) {
@@ -68,32 +50,24 @@ function MonadBody({ palette, glow }) {
 
   return (
     <group ref={group}>
-      {/* SOL — the solar circle with a visible centre */}
       <Torus args={[1, 0.035, 16, 96]} rotation={[Math.PI / 2, 0, 0]}>
         <meshStandardMaterial emissive={c0} color={c0} emissiveIntensity={glow} toneMapped={false} />
       </Torus>
 
-      {/* PUNCTUM — the central point / Earth, brightest of all */}
       <Sphere args={[0.075, 32, 32]}>
         <meshStandardMaterial emissive={c1} color={c1} emissiveIntensity={glow * 1.6} toneMapped={false} />
       </Sphere>
 
-      {/* LUNA — the crescent that acknowledges Sol as her lord */}
       <Line points={lunaCurve} color={c2} lineWidth={2.5} />
-
-      {/* CRUX — the Ternary × Quaternary elemental cross */}
       <Line points={[new THREE.Vector3(0, -1.5, 0), new THREE.Vector3(0, 0.1, 0)]} color={c0} lineWidth={2.5} />
       <Line points={[new THREE.Vector3(-0.5, -0.95, 0), new THREE.Vector3(0.5, -0.95, 0)]} color={c0} lineWidth={2.5} />
-
-      {/* ARIES — twin horns capturing the solar pneuma */}
       <Line points={ariesHorn(-1)} color={c2} lineWidth={2} />
       <Line points={ariesHorn(1)} color={c2} lineWidth={2} />
     </group>
   );
 }
 
-// Inner motes of "aether" drifting inside the glass.
-function Aether({ color, count = 120 }) {
+function Aether({ color, count = 120, rate = 1 }) {
   const ref = useRef();
   const positions = useMemo(() => {
     const arr = new Float32Array(count * 3);
@@ -108,8 +82,8 @@ function Aether({ color, count = 120 }) {
     return arr;
   }, [count]);
 
-  useFrame((state, dt) => {
-    if (ref.current) ref.current.rotation.y -= dt * 0.04;
+  useFrame((_state, dt) => {
+    if (ref.current) ref.current.rotation.y -= dt * 0.035 * rate;
   });
 
   return (
@@ -124,8 +98,11 @@ function Aether({ color, count = 120 }) {
 
 export default function MonadOrb({ theoremId = 1, stage = 'nigredo', onReady }) {
   const palette = getPalette(theoremId);
+  const spec = getManifestationSpec(theoremId);
   const glow = { nigredo: 0.7, albedo: 1.2, rubedo: 2.0 }[stage] ?? 1;
   const c0 = palette[0] || '#ffdf73';
+  const bloom = glow * (0.86 + spec.optics.pulse * 0.32);
+  const aberration = 0.00045 + spec.optics.chroma * 0.00125;
 
   return (
     <Canvas
@@ -143,31 +120,34 @@ export default function MonadOrb({ theoremId = 1, stage = 'nigredo', onReady }) 
       <pointLight position={[2, 2, -2]} intensity={glow} color={palette[2] || c0} />
 
       <Suspense fallback={null}>
-        <Float speed={1.1} rotationIntensity={0.15} floatIntensity={0.45}>
-          {/* the obsidian scrying glass — look THROUGH matter to the form within */}
+        <Float
+          speed={0.9 + spec.motion.fieldRate * 0.18}
+          rotationIntensity={0.1 + spec.optics.chroma * 0.22}
+          floatIntensity={0.34 + spec.optics.pulse * 0.28}
+        >
           <Sphere args={[1.7, 64, 64]}>
             <MeshTransmissionMaterial
               thickness={0.7}
               roughness={0.06}
               transmission={1}
               ior={1.45}
-              chromaticAberration={0.35}
+              chromaticAberration={0.22 + spec.optics.chroma * 0.5}
               anisotropy={0.2}
-              distortion={0.2}
+              distortion={0.14 + spec.optics.pulse * 0.12}
               distortionScale={0.3}
-              temporalDistortion={0.1}
+              temporalDistortion={0.08 + spec.motion.fieldRate * 0.02}
               backside
               backsideThickness={0.4}
               color="#120a08"
             />
           </Sphere>
-          <Aether color={c0} />
-          <MonadBody palette={palette} glow={glow} />
+          <Aether color={c0} rate={spec.motion.fieldRate} />
+          <MonadBody palette={palette} glow={glow} spec={spec} />
         </Float>
 
         <EffectComposer disableNormalPass>
-          <Bloom intensity={glow} luminanceThreshold={0.15} luminanceSmoothing={0.4} mipmapBlur />
-          <ChromaticAberration offset={[0.0007 * glow, 0.0007 * glow]} />
+          <Bloom intensity={bloom} luminanceThreshold={0.15} luminanceSmoothing={0.4} mipmapBlur />
+          <ChromaticAberration offset={[aberration, aberration]} />
         </EffectComposer>
       </Suspense>
     </Canvas>
