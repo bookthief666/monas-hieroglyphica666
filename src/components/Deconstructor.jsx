@@ -1,4 +1,7 @@
 import React, { useRef, useState, useCallback, useMemo } from 'react';
+import RitualProjection from './RitualProjection.jsx';
+import { getProjectionSpec } from '../lib/projectionSpec.js';
+import useMirrorRitual from '../lib/useMirrorRitual.js';
 
 // ============================================================================
 // THE OPERATIVE MONAD (Theorema XIII — Anatomia Monadis)
@@ -50,10 +53,12 @@ function MemberShape({ id, color }) {
   }
 }
 
-export default function Deconstructor({ palette, insight }) {
+export default function Deconstructor({ palette, insight, theoremId = 13 }) {
   const svgRef = useRef(null);
   const drag = useRef(null); // { id, lastX, lastY }
   const [offsets, setOffsets] = useState(() => Object.fromEntries(PARTS.map((p) => [p.id, [0, 0]])));
+  const projection = getProjectionSpec(theoremId);
+  const { lastOperation, memoryCount, strongestCharge } = useMirrorRitual(theoremId);
 
   const c0 = (palette && palette[0]) || '#ffdf73';
   const c2 = (palette && palette[2]) || '#ff4444';
@@ -71,6 +76,8 @@ export default function Deconstructor({ palette, insight }) {
 
   const crowned = coherence > 0.985;
   const pondus = 252; // conserved — the mass never changes, only the coherence
+  const rememberedCharge = Math.max(Number(lastOperation?.charge) || 0, Math.min(0.55, strongestCharge * 0.45));
+  const latentCharge = Math.max(rememberedCharge, crowned ? 1 : Math.max(0, coherence - 0.72) * 0.8);
 
   const toSvg = useCallback((clientX, clientY) => {
     const rect = svgRef.current.getBoundingClientRect();
@@ -118,56 +125,68 @@ export default function Deconstructor({ palette, insight }) {
       </p>
 
       <div className="flex flex-col md:flex-row items-center gap-8 w-full justify-center">
-        <svg
-          ref={svgRef}
-          viewBox={`0 0 ${VIEW} ${VIEW}`}
-          className="w-[300px] h-[300px] md:w-[340px] md:h-[340px] touch-none select-none rounded-full"
-          style={{
-            background: 'radial-gradient(circle at center, rgba(10,5,2,0.9) 0%, rgba(0,0,0,1) 100%)',
-            border: `2px solid ${crowned ? c0 : 'rgba(212,175,55,0.35)'}`,
-            boxShadow: crowned
-              ? `inset 0 0 50px rgba(0,0,0,0.8), 0 0 45px ${c0}`
-              : 'inset 0 0 50px rgba(0,0,0,0.9), 0 0 25px rgba(212,175,55,0.2)',
-            transition: 'box-shadow 0.6s ease, border-color 0.6s ease',
-          }}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerLeave={onPointerUp}
-        >
-          {/* faint binding lines from each member to the central point — the
-              "irrevocable bond to the centre" of Theorem XIII */}
-          {PARTS.map((p) => {
-            const [dx, dy] = offsets[p.id];
-            return (
-              <line
-                key={`bind-${p.id}`}
-                x1={CENTER} y1={CENTER}
-                x2={p.home[0] + dx} y2={p.home[1] + dy}
-                stroke={c2}
-                strokeWidth="0.6"
-                strokeDasharray="2 3"
-                opacity={0.4}
-              />
-            );
-          })}
-          <circle cx={CENTER} cy={CENTER} r="2.5" fill={c0} opacity={0.8} />
+        <div className="relative w-[300px] h-[300px] md:w-[340px] md:h-[340px] shrink-0">
+          <div className="absolute inset-[16%] z-20 pointer-events-none mix-blend-screen" aria-hidden="true">
+            <RitualProjection
+              kind={projection.operative}
+              variant="operative"
+              charge={latentCharge}
+              memoryCount={memoryCount}
+              className="w-full h-full"
+            />
+          </div>
 
-          {PARTS.map((p) => {
-            const [dx, dy] = offsets[p.id];
-            return (
-              <g
-                key={p.id}
-                transform={`translate(${p.home[0] + dx}, ${p.home[1] + dy})`}
-                onPointerDown={onPointerDown(p.id)}
-                style={{ cursor: 'grab', filter: `drop-shadow(0 0 6px ${c0})` }}
-              >
-                {/* invisible hit area for easier grabbing */}
-                <circle cx="0" cy="0" r="30" fill="transparent" />
-                <MemberShape id={p.id} color={crowned ? c0 : c2} />
-              </g>
-            );
-          })}
-        </svg>
+          <svg
+            ref={svgRef}
+            viewBox={`0 0 ${VIEW} ${VIEW}`}
+            className="relative z-10 w-full h-full touch-none select-none rounded-full"
+            style={{
+              background: 'radial-gradient(circle at center, rgba(10,5,2,0.9) 0%, rgba(0,0,0,1) 100%)',
+              border: `2px solid ${crowned ? c0 : 'rgba(212,175,55,0.35)'}`,
+              boxShadow: crowned
+                ? `inset 0 0 50px rgba(0,0,0,0.8), 0 0 45px ${c0}`
+                : 'inset 0 0 50px rgba(0,0,0,0.9), 0 0 25px rgba(212,175,55,0.2)',
+              transition: 'box-shadow 0.6s ease, border-color 0.6s ease',
+            }}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerLeave={onPointerUp}
+          >
+            {/* faint binding lines from each member to the central point — the
+                "irrevocable bond to the centre" of Theorem XIII */}
+            {PARTS.map((p) => {
+              const [dx, dy] = offsets[p.id];
+              return (
+                <line
+                  key={`bind-${p.id}`}
+                  x1={CENTER} y1={CENTER}
+                  x2={p.home[0] + dx} y2={p.home[1] + dy}
+                  stroke={c2}
+                  strokeWidth="0.6"
+                  strokeDasharray="2 3"
+                  opacity={0.4}
+                />
+              );
+            })}
+            <circle cx={CENTER} cy={CENTER} r="2.5" fill={c0} opacity={0.8} />
+
+            {PARTS.map((p) => {
+              const [dx, dy] = offsets[p.id];
+              return (
+                <g
+                  key={p.id}
+                  transform={`translate(${p.home[0] + dx}, ${p.home[1] + dy})`}
+                  onPointerDown={onPointerDown(p.id)}
+                  style={{ cursor: 'grab', filter: `drop-shadow(0 0 6px ${c0})` }}
+                >
+                  {/* invisible hit area for easier grabbing */}
+                  <circle cx="0" cy="0" r="30" fill="transparent" />
+                  <MemberShape id={p.id} color={crowned ? c0 : c2} />
+                </g>
+              );
+            })}
+          </svg>
+        </div>
 
         <div className="text-center md:text-left min-w-[180px]">
           <div className="mb-4">
@@ -183,6 +202,11 @@ export default function Deconstructor({ palette, insight }) {
           </div>
           {crowned && (
             <p className="font-script text-[var(--ink-gold)] text-xl glow-gold mb-4 animate-pulse">Lapis Coronatus — the Stone is crowned.</p>
+          )}
+          {memoryCount > 0 && (
+            <p className="font-medieval text-[var(--ink-gold)] text-[0.65rem] tracking-[0.2em] uppercase opacity-60 mb-4">
+              Vestigium · {lastOperation?.mode || 'memoria'}
+            </p>
           )}
           <div className="flex gap-3 justify-center md:justify-start">
             <button onClick={disperse} className="font-medieval text-xs tracking-widest uppercase border border-[var(--ink-red)]/50 text-[var(--ink-red)] px-4 py-2 rounded hover:bg-[var(--ink-red)] hover:text-black transition-all">Solve</button>
