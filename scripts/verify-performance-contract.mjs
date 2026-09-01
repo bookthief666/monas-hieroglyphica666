@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
 const css = read('../src/index.css');
+const visionCss = read('../src/vision-completion.css');
 const kinetic = read('../src/components/KineticText.jsx');
 const decrypt = read('../src/lib/useScrollDecrypt.js');
 const deconstructor = read('../src/components/Deconstructor.jsx');
@@ -31,6 +32,20 @@ assert.match(
 );
 
 assert.doesNotMatch(
+  visionCss,
+  /(^|[;{]\s*)filter\s*:/m,
+  'Recovered codex animation must not animate or attach CSS filters',
+);
+assert.doesNotMatch(
+  visionCss,
+  /backdrop-filter\s*:/,
+  'Recovered codex surfaces must not reintroduce backdrop filtering on the Fold',
+);
+assert.match(visionCss, /@keyframes\s+reliquary-dust-condense/, 'The recovered plate must retain its smoke/pixel condensation gesture');
+assert.match(visionCss, /@media\s*\(pointer:\s*coarse\),\s*\(hover:\s*none\)/, 'The recovered plate must have a touch-first cost reduction');
+assert.match(visionCss, /@media\s*\(prefers-reduced-motion:\s*reduce\)/, 'The recovered plate must honor reduced motion');
+
+assert.doesNotMatch(
   kinetic,
   /Math\.random/,
   'Kinetic cipher glyphs must be deterministic between reveal steps',
@@ -56,4 +71,4 @@ assert.match(
   'Device profiling must ignore browser-chrome resize noise when capability bands are unchanged',
 );
 
-console.log('Living Grimoire performance contract PASS: stable cipher, sampled decrypt, throttled Anatomia, bounded stage/compositor transitions.');
+console.log('Living Grimoire performance contract PASS: stable cipher, sampled decrypt, throttled Anatomia, bounded stage/compositor transitions, compositor-cheap recovered codex motion.');
