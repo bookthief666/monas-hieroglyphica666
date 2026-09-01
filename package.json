@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "verify:mirror": "node scripts/verify-living-mirror.mjs",
     "verify:renderer": "node scripts/verify-render-capability.mjs",
-    "check": "npm run verify:mirror && npm run verify:renderer && npm run build"
+    "verify:fold": "node scripts/verify-fold-runtime.mjs",
+    "check": "npm run verify:mirror && npm run verify:renderer && npm run verify:fold && npm run build"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.0",
