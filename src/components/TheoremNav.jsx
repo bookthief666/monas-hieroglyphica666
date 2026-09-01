@@ -70,7 +70,11 @@ export default function TheoremNav({ theorems, active, onSelect, memory = null }
     if (!rail || !target) return undefined;
 
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const desired = target.offsetLeft - (rail.clientWidth - target.offsetWidth) / 2;
+    const railRect = rail.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const desired = rail.scrollLeft
+      + (targetRect.left - railRect.left)
+      - (rail.clientWidth - targetRect.width) / 2;
     rail.scrollTo({
       left: Math.max(0, desired),
       behavior: reduceMotion ? 'auto' : 'smooth',
