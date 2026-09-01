@@ -1,6 +1,6 @@
 /* Samsung/Android compositor safety.
-   The Fold keeps the same grimoire composition while avoiding the blend/filter
-   combinations that can intermittently wash the full page or shew-stone white. */
+   Keep the grimoire composition while avoiding the blend/filter combinations
+   that can intermittently wash the page or drop a promoted canvas layer. */
 .fold-safe-compositor .bg-animate {
   mix-blend-mode: normal !important;
 }
@@ -25,48 +25,37 @@
   opacity: 0.16 !important;
 }
 
+/* IMPORTANT: do not GPU-promote the 2D shew-stone on Samsung/Fold.
+   The previous translateZ/contain/absolute-canvas combination could leave the
+   compositor showing only the black vessel while the canvas layer vanished. */
 .fold-safe-compositor .living-black-mirror {
   isolation: isolate;
-  contain: paint;
+  contain: none !important;
+  transform: none !important;
+  -webkit-transform: none !important;
+  backface-visibility: visible !important;
+  -webkit-backface-visibility: visible !important;
   background: radial-gradient(circle at 48% 44%, #0a0808 0%, #020202 56%, #000 100%) !important;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
 }
 
 .fold-safe-compositor .living-black-mirror > canvas {
-  position: absolute !important;
-  inset: 0 !important;
-  z-index: 2 !important;
+  position: relative !important;
+  inset: auto !important;
+  z-index: 1 !important;
   display: block !important;
-  width: 100% !important;
-  height: 100% !important;
   opacity: 1 !important;
   mix-blend-mode: normal !important;
   background: transparent !important;
+  transform: none !important;
+  -webkit-transform: none !important;
 }
 
+/* The canvas already paints depth/skeleton/rim information itself. Keep the
+   auxiliary glass layers out of the Fold compositor until they can be proven
+   independently safe. Desktop keeps the richer optical stack. */
 .fold-safe-compositor .mirror-depth-volume,
 .fold-safe-compositor .mirror-inner-rim {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.fold-safe-compositor .mirror-depth-volume {
-  z-index: 1;
-  background:
-    radial-gradient(circle at 50% 48%, rgba(80, 45, 30, 0.06) 0%, rgba(10, 7, 8, 0.14) 38%, rgba(0, 0, 0, 0.58) 100%);
-  box-shadow: inset 0 0 48px rgba(0, 0, 0, 0.95);
-}
-
-.fold-safe-compositor .mirror-inner-rim {
-  z-index: 3;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 223, 115, 0.12),
-    inset 0 0 24px rgba(255, 68, 68, 0.04);
+  display: none !important;
 }
 
 .renderer-diagnostic {
