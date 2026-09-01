@@ -2,7 +2,7 @@ name: Deploy the Living Grimoire to GitHub Pages
 
 on:
   push:
-    branches: [claude/ecstatic-euler-dwgsf, main]
+    branches: [main]
   workflow_dispatch:
 
 # Permissions required for the GITHUB_TOKEN to publish to Pages.
@@ -32,8 +32,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
+      - name: Verify and build release artifact
+        run: npm run check
 
       - name: Configure Pages (auto-enable if needed)
         uses: actions/configure-pages@v5
