@@ -1,211 +1,506 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { getPalette } from '../data/palettes.js';
+import { getManifestationSpec } from '../lib/manifestationSpec.js';
+import { hash01, targetForParticle } from '../lib/particleGeometry.js';
+import useDeviceProfile from '../lib/useDeviceProfile.js';
 
-const IS_MOBILE = typeof navigator !== 'undefined' &&
-  (/Mobi|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 0 && window.innerWidth < 1024));
-const PARTICLE_COUNT = IS_MOBILE ? 300 : 450;
+const TAU = Math.PI * 2;
+const EPSILON = 0.0001;
+const MAX_RIPPLES = 7;
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function applyFieldLaw(particle, spec, time, center, pointer) {
+  const dx = particle.x - center.x;
+  const dy = particle.y - center.y;
+  const distSq = dx * dx + dy * dy;
+  if (distSq <= EPSILON) return;
+
+  const dist = Math.sqrt(distSq);
+  const nx = dx / dist;
+  const ny = dy / dist;
+  const phase = time * 0.001 * spec.motion.fieldRate + particle.phase;
+  const energy = pointer.energy;
+
+  switch (spec.field) {
+    case 'solar':
+    case 'radial':
+    case 'radiant': {
+      const pulse = Math.sin(phase * 1.7) * 0.0045 * (1 + energy * 1.8);
+      particle.vx += nx * pulse * dist;
+      particle.vy += ny * pulse * dist;
+      break;
+    }
+    case 'lunar': {
+      const lens = Math.sin(phase) * 0.012 * (0.4 + energy);
+      particle.vx += -ny * lens;
+      particle.vy += nx * lens * 0.65;
+      break;
+    }
+    case 'stellar': {
+      const pulse = Math.sin(phase * 2.2) * 0.008 * (0.5 + energy);
+      particle.vx += nx * pulse;
+      particle.vy += ny * pulse;
+      break;
+    }
+    case 'vortex':
+    case 'toroidal':
+    case 'spiral': {
+      const spin = 0.0075 * spec.motion.fieldRate * (0.35 + energy * 1.6);
+      particle.vx += -ny * spin;
+      particle.vy += nx * spin;
+      if (spec.field === 'spiral') {
+        const breathe = Math.sin(phase * 1.35) * 0.0035;
+        particle.vx += nx * breathe;
+        particle.vy += ny * breathe;
+      }
+      break;
+    }
+    case 'harmonic': {
+      particle.vy += Math.sin(phase * 2 + particle.index * 0.04) * 0.006 * (0.5 + energy);
+      break;
+    }
+    case 'egg': {
+      particle.vx += Math.sin(phase) * 0.0025;
+      particle.vy += Math.cos(phase * 0.7) * 0.0035;
+      break;
+    }
+    case 'monadic': {
+      const inward = 0.0025 * (0.5 + energy);
+      particle.vx -= nx * inward;
+      particle.vy -= ny * inward;
+      break;
+    }
+    case 'hypercube': {
+      const depth = Math.sin(phase + (particle.index % 4) * Math.PI / 2) * 0.004;
+      particle.vx += nx * depth;
+      particle.vy -= ny * depth;
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+function applyPointerField(particle, pointer, spec) {
+  if (!pointer.active) return;
+
+  const dx = particle.x - pointer.x;
+  const dy = particle.y - pointer.y;
+  const distSq = dx * dx + dy * dy;
+  if (distSq <= EPSILON) return;
+
+  const radius = spec.physics.radius * (1 + Math.min(pointer.speed, 2.5) * 0.12);
+  if (distSq >= radius * radius) return;
+
+  const dist = Math.sqrt(distSq);
+  const nx = dx / dist;
+  const ny = dy / dist;
+  const falloff = Math.pow(1 - dist / radius, 1.7);
+  const pressure = pointer.down
+    ? 1 + clamp(pointer.pressure || 0.5, 0, 1) * spec.physics.pressureGain
+    : 1;
+
+  const radial = pointer.down
+    ? -spec.physics.holdForce * pressure
+    : spec.physics.traceForce * (0.85 + Math.min(pointer.speed, 2.5) * 0.28);
+
+  particle.vx += nx * radial * falloff;
+  particle.vy += ny * radial * falloff;
+
+  const tangent = spec.physics.swirl * falloff * (0.35 + Math.min(pointer.speed, 3));
+  particle.vx += -ny * tangent;
+  particle.vy += nx * tangent;
+}
+
+function applyRippleField(particle, ripples, spec, now) {
+  for (const ripple of ripples) {
+    const age = now - ripple.born;
+    if (age < 0 || age > 1050) continue;
+
+    const waveRadius = 8 + age * spec.physics.rippleSpeed;
+    const dx = particle.x - ripple.x;
+    const dy = particle.y - ripple.y;
+    const distSq = dx * dx + dy * dy;
+    if (distSq <= EPSILON) continue;
+
+    const dist = Math.sqrt(distSq);
+    const shell = Math.abs(dist - waveRadius);
+    if (shell > 18) continue;
+
+    const nx = dx / dist;
+    const ny = dy / dist;
+    const envelope = 1 - shell / 18;
+    const decay = 1 - age / 1050;
+    const force = spec.physics.rippleForce * ripple.strength * envelope * decay * 0.11;
+    particle.vx += nx * force;
+    particle.vy += ny * force;
+  }
+}
 
 export default function ParticleSigil({ currentShape, theoremId }) {
+  const mirrorRef = useRef(null);
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const particlesRef = useRef([]);
-  const mouseRef = useRef({ x: -1000, y: -1000 });
-  const sizeRef = useRef({ w: 0, h: 0 });
+  const ripplesRef = useRef([]);
+  const pointerRef = useRef({
+    x: -1000,
+    y: -1000,
+    lastX: -1000,
+    lastY: -1000,
+    active: false,
+    down: false,
+    pressure: 0,
+    speed: 0,
+    energy: 0,
+    pointerType: 'mouse',
+    lastRippleAt: 0,
+  });
 
-  const handleMouseMove = useCallback((e) => {
-    if (!canvasRef.current) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    mouseRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  const profile = useDeviceProfile();
+  const spec = useMemo(() => getManifestationSpec(theoremId, currentShape), [theoremId, currentShape]);
+
+  const setMirrorFocus = useCallback((x, y, active, pressing = false) => {
+    const mirror = mirrorRef.current;
+    if (!mirror) return;
+    const rect = mirror.getBoundingClientRect();
+    const px = rect.width > 0 ? clamp((x / rect.width) * 100, 0, 100) : 50;
+    const py = rect.height > 0 ? clamp((y / rect.height) * 100, 0, 100) : 50;
+    mirror.style.setProperty('--mirror-x', `${px}%`);
+    mirror.style.setProperty('--mirror-y', `${py}%`);
+    mirror.dataset.active = active ? 'true' : 'false';
+    mirror.dataset.pressing = pressing ? 'true' : 'false';
   }, []);
-  const handleMouseLeave = useCallback(() => {
-    mouseRef.current = { x: -1000, y: -1000 };
+
+  const localPoint = useCallback((event) => {
+    const mirror = mirrorRef.current;
+    if (!mirror) return null;
+    const rect = mirror.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   }, []);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    const container = canvas.parentElement;
-    const rect = container.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, IS_MOBILE ? 2 : 3);
-    const w = rect.width;
-    const h = rect.height;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
-    ctx.scale(dpr, dpr);
-    sizeRef.current = { w, h };
+  const addRipple = useCallback((x, y, strength = 1) => {
+    if (!profile.enableRipples) return;
+    const ripples = ripplesRef.current;
+    ripples.push({ x, y, born: performance.now(), strength });
+    if (ripples.length > MAX_RIPPLES) ripples.splice(0, ripples.length - MAX_RIPPLES);
+  }, [profile.enableRipples]);
 
-    const cx = w / 2;
-    const cy = h / 2;
-    const baseRadius = w < 300 ? w * 0.26 : 90;
+  const handlePointerMove = useCallback((event) => {
+    const point = localPoint(event);
+    if (!point) return;
 
-    class Particle {
-      constructor(i) {
-        this.index = i;
-        this.x = cx + (Math.random() * 20 - 10);
-        this.y = cy + (Math.random() * 20 - 10);
-        this.tx = cx;
-        this.ty = cy;
-        this.vx = 0;
-        this.vy = 0;
-        this.size = Math.random() * (IS_MOBILE ? 1.0 : 0.8) + 0.4;
-        this.baseColor = '#ffffff';
-        this.speed = Math.random() * 0.05 + 0.02;
-      }
-      update(t, mouse) {
-        this.vx += (this.tx - this.x) * this.speed * 0.08;
-        this.vy += (this.ty - this.y) * this.speed * 0.08;
-        const dx = this.x - mouse.x;
-        const dy = this.y - mouse.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 60) {
-          const force = (60 - dist) / 60;
-          this.vx += (dx / dist) * force * 2;
-          this.vy += (dy / dist) * force * 2;
-        }
-        this.vx *= 0.82;
-        this.vy *= 0.82;
-        this.x += this.vx + Math.sin(t * 0.001 + this.index) * 0.2;
-        this.y += this.vy + Math.cos(t * 0.0015 + this.index) * 0.2;
-      }
-      draw(c) {
-        c.fillStyle = this.baseColor;
-        if (!IS_MOBILE) { c.shadowBlur = 6; c.shadowColor = this.baseColor; }
-        c.beginPath();
-        c.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        c.fill();
-        if (!IS_MOBILE) c.shadowBlur = 0;
+    const pointer = pointerRef.current;
+    const first = pointer.lastX < -500;
+    const dx = first ? 0 : point.x - pointer.lastX;
+    const dy = first ? 0 : point.y - pointer.lastY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    pointer.x = point.x;
+    pointer.y = point.y;
+    pointer.lastX = point.x;
+    pointer.lastY = point.y;
+    pointer.pointerType = event.pointerType || pointer.pointerType;
+    pointer.pressure = event.pressure || (pointer.down ? 0.5 : 0);
+    pointer.speed = pointer.speed * 0.58 + Math.min(3, distance / 10) * 0.42;
+    pointer.energy = Math.min(1, pointer.energy + 0.08 + Math.min(distance, 30) / 90);
+    pointer.active = true;
+
+    if (pointer.down && distance > 5) {
+      const now = performance.now();
+      if (now - pointer.lastRippleAt > 72) {
+        addRipple(point.x, point.y, 0.34 + Math.min(pointer.speed, 2) * 0.16);
+        pointer.lastRippleAt = now;
       }
     }
 
-    particlesRef.current.length = 0;
-    for (let i = 0; i < PARTICLE_COUNT; i++) particlesRef.current.push(new Particle(i));
+    setMirrorFocus(point.x, point.y, true, pointer.down);
+  }, [addRipple, localPoint, setMirrorFocus]);
 
-    const currentPalette = getPalette(theoremId);
-    particlesRef.current.forEach((p, i) => {
-      p.baseColor = currentPalette[i % currentPalette.length];
-    });
+  const handlePointerDown = useCallback((event) => {
+    const point = localPoint(event);
+    if (!point) return;
+    const pointer = pointerRef.current;
+    pointer.x = point.x;
+    pointer.y = point.y;
+    pointer.lastX = point.x;
+    pointer.lastY = point.y;
+    pointer.active = true;
+    pointer.down = true;
+    pointer.pointerType = event.pointerType || 'mouse';
+    pointer.pressure = event.pressure || 0.5;
+    pointer.energy = Math.min(1, pointer.energy + 0.45);
+    pointer.speed = 0;
+    pointer.lastRippleAt = performance.now();
+    addRipple(point.x, point.y, 1);
+    setMirrorFocus(point.x, point.y, true, true);
+    try { event.currentTarget.setPointerCapture?.(event.pointerId); } catch { /* capture is optional */ }
+  }, [addRipple, localPoint, setMirrorFocus]);
 
-    const setTargets = (s) => {
-      particlesRef.current.forEach((p, i) => {
-        const r = i / particlesRef.current.length;
-        if (s === 'line-circle') {
-          if (r < 0.6) { const a = (r / 0.6) * Math.PI * 2; p.tx = cx + Math.cos(a) * baseRadius; p.ty = cy + Math.sin(a) * baseRadius; }
-          else { p.tx = cx; p.ty = cy + (((r - 0.6) / 0.4) - 0.5) * (baseRadius * 2.5); }
-        } else if (s === 'point-line-circle') {
-          if (r < 0.1) { const a = Math.random() * Math.PI * 2; const d = Math.random() * 3; p.tx = cx + Math.cos(a) * d; p.ty = cy + Math.sin(a) * d; }
-          else if (r < 0.5) { const h2 = ((r - 0.1) / 0.4); p.tx = cx; p.ty = cy - (h2 * baseRadius * 1.5); }
-          else { const a = ((r - 0.5) / 0.5) * Math.PI * 2; p.tx = cx + Math.cos(a) * (baseRadius * 0.9); p.ty = cy + Math.sin(a) * (baseRadius * 0.9); }
-        } else if (s === 'sun-earth') {
-          const a = r * Math.PI * 2; const d = r < 0.15 ? Math.random() * 4 : baseRadius + (Math.random() * 4 - 2); p.tx = cx + Math.cos(a) * d; p.ty = cy + Math.sin(a) * d;
-        } else if (s === 'sun-moon') {
-          if (r < 0.5) { const a = r / 0.5 * Math.PI * 2; p.tx = cx + Math.cos(a) * (baseRadius * 0.9); p.ty = cy + Math.sin(a) * (baseRadius * 0.9); }
-          else { const a = Math.PI + (r - 0.5) / 0.5 * Math.PI; p.tx = cx + Math.cos(a) * (baseRadius * 0.75); p.ty = cy - (baseRadius * 0.8) + Math.sin(a) * (baseRadius * 0.75); }
-        } else if (s === 'cross-rotated' || s === 'cross-quaternary') {
-          const r2 = r * 2;
-          if (r2 < 1) { p.tx = cx + (r2 - 0.5) * baseRadius * 2; p.ty = cy + (r2 - 0.5) * baseRadius * 2; }
-          else { p.tx = cx + ((r2 - 1) - 0.5) * baseRadius * 2; p.ty = cy - ((r2 - 1) - 0.5) * baseRadius * 2; }
-        } else if (s === 'triangle-fire') {
-          if (r < 0.33) { p.tx = cx - baseRadius + (r / 0.33) * baseRadius * 2; p.ty = cy + baseRadius; }
-          else if (r < 0.66) { const rat = (r - 0.33) / 0.33; p.tx = cx + baseRadius - rat * baseRadius; p.ty = cy + baseRadius - rat * baseRadius * 2; }
-          else { const rat = (r - 0.66) / 0.34; p.tx = cx - rat * baseRadius; p.ty = cy - baseRadius + rat * baseRadius * 2; }
-        } else if (s === 'square-circle') {
-          if (r < 0.5) { const a = (r / 0.5) * Math.PI * 2; p.tx = cx + Math.cos(a) * baseRadius; p.ty = cy + Math.sin(a) * baseRadius; }
-          else {
-            const edge = (r - 0.5) / 0.5 * 4; const rat = edge % 1; const rad = baseRadius * 0.9;
-            if (edge < 1) { p.tx = cx - rad + rat * (rad * 2); p.ty = cy - rad; }
-            else if (edge < 2) { p.tx = cx + rad; p.ty = cy - rad + rat * (rad * 2); }
-            else if (edge < 3) { p.tx = cx + rad - rat * (rad * 2); p.ty = cy + rad; }
-            else { p.tx = cx - rad; p.ty = cy + rad - rat * (rad * 2); }
-          }
-        } else if (s === 'aries-cross') {
-          if (r < 0.4) { p.tx = cx; p.ty = cy + ((r / 0.4) - 0.5) * baseRadius * 2; }
-          else if (r < 0.7) { p.tx = cx + (((r - 0.4) / 0.3) - 0.5) * baseRadius * 2; p.ty = cy; }
-          else { const a = Math.PI + ((r - 0.7) / 0.3) * Math.PI; p.tx = cx + Math.cos(a) * 40; p.ty = cy - baseRadius - 20 + Math.abs(Math.sin(a) * 40); }
-        } else if (s === 'metatron') {
-          const a = r * Math.PI * 2; const d = Math.random() * baseRadius * 1.5; p.tx = cx + Math.cos(a) * d; p.ty = cy + Math.sin(a) * d;
-        } else if (s === 'icosahedron') {
-          const band = Math.floor(r * 5); const a = r * Math.PI * 2 * 3; p.tx = cx + Math.cos(a) * (baseRadius * (band / 5)); p.ty = cy + Math.sin(a) * (baseRadius * (band / 5));
-        } else if (s === 'torus') {
-          const u = r * Math.PI * 2 * 5; const v = r * Math.PI * 2; p.tx = cx + (baseRadius + 20 * Math.cos(v)) * Math.cos(u); p.ty = cy + (baseRadius + 20 * Math.cos(v)) * Math.sin(u);
-        } else if (s === 'sri-yantra' || s === 'pentagram' || s === 'sacred-252') {
-          if (r < 0.5) { p.tx = cx + (r - 0.25) * baseRadius * 3; p.ty = cy + Math.abs(r - 0.25) * baseRadius * 3; }
-          else { p.tx = cx + (r - 0.75) * baseRadius * 3; p.ty = cy - Math.abs(r - 0.75) * baseRadius * 3; }
-        } else if (s === 'monad-full') {
-          if (r < 0.2) { const a = (r / 0.2) * Math.PI * 2; p.tx = cx + Math.cos(a) * 30; p.ty = cy - 30 + Math.sin(a) * 30; }
-          else if (r < 0.4) { p.tx = cx; p.ty = cy + ((r - 0.2) / 0.2) * 80; }
-          else if (r < 0.6) { p.tx = cx - 40 + ((r - 0.4) / 0.2) * 80; p.ty = cy + 40; }
-          else { const a = Math.PI + ((r - 0.6) / 0.4) * Math.PI; p.tx = cx + Math.cos(a) * 30; p.ty = cy + 70 + Math.abs(Math.sin(a) * 30); }
-        } else if (s === 'hermetic-egg') {
-          const a = r * Math.PI * 2; p.tx = cx + Math.cos(a) * baseRadius * 0.8; p.ty = cy + Math.sin(a) * baseRadius * 1.2;
-        } else if (s === 'sephiroth') {
-          p.tx = cx + (Math.random() - 0.5) * baseRadius * 1.5; p.ty = cy + (Math.random() - 0.5) * baseRadius * 2;
-        } else if (s === 'albedo-rubedo') {
-          if (r < 0.5) { const a = (r / 0.5) * Math.PI * 2; p.tx = cx - 20 + Math.cos(a) * baseRadius * 0.8; p.ty = cy + Math.sin(a) * baseRadius * 0.8; }
-          else { const a = ((r - 0.5) / 0.5) * Math.PI * 2; p.tx = cx + 20 + Math.cos(a) * baseRadius * 0.8; p.ty = cy + Math.sin(a) * baseRadius * 0.8; }
-        } else if (s === 'radiance') {
-          const a = r * Math.PI * 2; const d = Math.random() * baseRadius * 2; p.tx = cx + Math.cos(a) * d; p.ty = cy + Math.sin(a) * d;
-        } else if (s === 'hypercube-stone') {
-          const band = Math.floor(r * 4);
-          if (band === 0) { p.tx = cx - 30 + (r * 4) * 60; p.ty = cy - 30; }
-          else if (band === 1) { p.tx = cx + 30; p.ty = cy - 30 + ((r - 0.25) * 4) * 60; }
-          else if (band === 2) { p.tx = cx + 30 - ((r - 0.5) * 4) * 60; p.ty = cy + 30; }
-          else { p.tx = cx - 30; p.ty = cy + 30 - ((r - 0.75) * 4) * 60; }
-        } else if (s === 'infinite-spiral') {
-          const a = r * Math.PI * 2 * 6; const d = r * baseRadius * 1.5; p.tx = cx + Math.cos(a) * d; p.ty = cy + Math.sin(a) * d;
-        } else {
-          p.tx = r < 0.5 ? cx : cx + (r - 0.75) * (baseRadius * 2.3); p.ty = r < 0.5 ? cy + (r - 0.25) * (baseRadius * 2.3) : cy;
+  const handlePointerUp = useCallback((event) => {
+    const pointer = pointerRef.current;
+    pointer.down = false;
+    pointer.pressure = 0;
+    pointer.energy = Math.min(1, pointer.energy + 0.12);
+    const keepHover = (event.pointerType || pointer.pointerType) === 'mouse';
+    pointer.active = keepHover;
+    if (!keepHover) {
+      pointer.lastX = -1000;
+      pointer.lastY = -1000;
+    }
+    setMirrorFocus(pointer.x, pointer.y, keepHover, false);
+    try { event.currentTarget.releasePointerCapture?.(event.pointerId); } catch { /* release is optional */ }
+  }, [setMirrorFocus]);
+
+  const handlePointerLeave = useCallback(() => {
+    const pointer = pointerRef.current;
+    if (pointer.down) return;
+    pointer.active = false;
+    pointer.speed = 0;
+    pointer.lastX = -1000;
+    pointer.lastY = -1000;
+    setMirrorFocus(pointer.x, pointer.y, false, false);
+  }, [setMirrorFocus]);
+
+  const handlePointerCancel = useCallback(() => {
+    const pointer = pointerRef.current;
+    pointer.active = false;
+    pointer.down = false;
+    pointer.pressure = 0;
+    pointer.speed = 0;
+    pointer.lastX = -1000;
+    pointer.lastY = -1000;
+    setMirrorFocus(pointer.x, pointer.y, false, false);
+  }, [setMirrorFocus]);
+
+  useEffect(() => {
+    const mirror = mirrorRef.current;
+    if (!mirror) return undefined;
+    mirror.dataset.field = spec.field;
+    mirror.style.setProperty('--mirror-caustic', String(spec.optics.caustic));
+    mirror.style.setProperty('--mirror-engraving', String(spec.optics.engraving));
+    mirror.style.setProperty('--mirror-chroma', String(spec.optics.chroma));
+    mirror.style.setProperty('--manifestation-rate', String(spec.motion.fieldRate));
+    document.documentElement.style.setProperty('--manifestation-holo-seconds', `${spec.motion.hologramSeconds}s`);
+    document.documentElement.style.setProperty('--manifestation-field-rate', String(spec.motion.fieldRate));
+  }, [spec.field, spec.motion.fieldRate, spec.motion.hologramSeconds, spec.optics.caustic, spec.optics.chroma, spec.optics.engraving]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const mirror = mirrorRef.current;
+    if (!canvas || !mirror) return undefined;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return undefined;
+
+    const palette = getPalette(theoremId);
+    mirror.style.setProperty('--mirror-primary', palette[0] || 'var(--ink-gold)');
+    mirror.style.setProperty('--mirror-secondary', palette[1] || 'var(--ink-red)');
+    mirror.style.setProperty('--mirror-tertiary', palette[2] || palette[0] || 'var(--ink-gold)');
+    const particleCount = profile.particleBudget;
+    let width = 0;
+    let height = 0;
+    let center = { x: 0, y: 0 };
+    let baseRadius = 90;
+    let frameCount = 0;
+    let lastTime = performance.now();
+
+    class Particle {
+      constructor(index) {
+        this.index = index;
+        this.phase = hash01(index, theoremId + 17) * TAU;
+        this.x = center.x + (hash01(index, theoremId + 1) - 0.5) * 18;
+        this.y = center.y + (hash01(index, theoremId + 2) - 0.5) * 18;
+        this.tx = center.x;
+        this.ty = center.y;
+        this.vx = 0;
+        this.vy = 0;
+        this.size = 0.42 + hash01(index, theoremId + 5) * (profile.touchFirst ? 0.92 : 0.72);
+        this.color = palette[index % palette.length] || '#ffffff';
+        this.springVariance = 0.78 + hash01(index, theoremId + 11) * 0.44;
+      }
+
+      setTarget() {
+        const target = targetForParticle(currentShape, this.index, particleCount, center.x, center.y, baseRadius, theoremId);
+        this.tx = target.x;
+        this.ty = target.y;
+      }
+
+      update(now) {
+        const pointer = pointerRef.current;
+        const spring = spec.physics.spring * this.springVariance;
+        this.vx += (this.tx - this.x) * spring;
+        this.vy += (this.ty - this.y) * spring;
+
+        applyFieldLaw(this, spec, now, center, pointer);
+        applyPointerField(this, pointer, spec);
+        applyRippleField(this, ripplesRef.current, spec, now);
+
+        this.vx *= spec.physics.damping;
+        this.vy *= spec.physics.damping;
+
+        const drift = profile.reducedMotion ? 0.035 : spec.physics.drift;
+        this.x += this.vx + Math.sin(now * 0.001 + this.phase) * drift;
+        this.y += this.vy + Math.cos(now * 0.0013 + this.phase) * drift;
+      }
+
+      draw() {
+        ctx.fillStyle = this.color;
+        if (profile.enableParticleGlow) {
+          ctx.shadowBlur = 5;
+          ctx.shadowColor = this.color;
         }
-      });
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, TAU);
+        ctx.fill();
+        if (profile.enableParticleGlow) ctx.shadowBlur = 0;
+      }
+    }
+
+    const setAllTargets = () => {
+      particlesRef.current.forEach((particle) => particle.setTarget());
     };
 
-    setTargets(currentShape);
+    const resize = () => {
+      const rect = mirror.getBoundingClientRect();
+      width = Math.max(1, rect.width);
+      height = Math.max(1, rect.height);
+      const dpr = Math.min(window.devicePixelRatio || 1, profile.dprCap);
+      canvas.width = Math.max(1, Math.round(width * dpr));
+      canvas.height = Math.max(1, Math.round(height * dpr));
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      center = { x: width / 2, y: height / 2 };
+      baseRadius = Math.min(width, height) * (width < 300 ? 0.27 : 0.285);
+      setAllTargets();
+    };
 
-    let frame = 0;
-    const lineStep = IS_MOBILE ? 8 : 5;
-    const lineStepJ = IS_MOBILE ? 10 : 6;
-    const animate = () => {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-      ctx.fillRect(0, 0, w, h);
+    particlesRef.current = Array.from({ length: particleCount }, (_, index) => new Particle(index));
+    resize();
 
-      const p = particlesRef.current;
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-      ctx.lineWidth = 0.2;
+    const drawConnections = () => {
+      const particles = particlesRef.current;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.075)';
+      ctx.lineWidth = 0.22;
       ctx.beginPath();
-      for (let i = 0; i < p.length; i += lineStep) {
-        for (let j = i + 1; j < p.length; j += lineStepJ) {
-          const dx = p[i].x - p[j].x;
-          const dy = p[i].y - p[j].y;
-          if (dx * dx + dy * dy < 1000) { ctx.moveTo(p[i].x, p[i].y); ctx.lineTo(p[j].x, p[j].y); }
+      const maxDistSq = Math.pow(Math.min(width, height) * 0.105, 2);
+      for (let i = 0; i < particles.length; i += profile.lineStep) {
+        for (let j = i + profile.lineStepJ; j < particles.length; j += profile.lineStepJ) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          if (dx * dx + dy * dy < maxDistSq) {
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+          }
         }
       }
       ctx.stroke();
+    };
+
+    const drawRipples = (now) => {
+      if (!profile.enableRipples) return;
+      ripplesRef.current = ripplesRef.current.filter((ripple) => now - ripple.born < 1050);
+      for (const ripple of ripplesRef.current) {
+        const age = now - ripple.born;
+        const progress = age / 1050;
+        const radius = 8 + age * spec.physics.rippleSpeed;
+        const alpha = (1 - progress) * 0.3 * ripple.strength;
+        ctx.strokeStyle = palette[Math.floor(progress * palette.length) % palette.length] || '#ffdf73';
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = 0.7 + ripple.strength * 0.5;
+        ctx.beginPath();
+        ctx.arc(ripple.x, ripple.y, radius, 0, TAU);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    };
+
+    const drawContact = () => {
+      const pointer = pointerRef.current;
+      if (!pointer.active) return;
+      const energy = clamp(pointer.energy, 0, 1);
+      ctx.fillStyle = palette[0] || '#ffdf73';
+      ctx.globalAlpha = 0.42 + energy * 0.26;
+      ctx.beginPath();
+      ctx.arc(pointer.x, pointer.y, pointer.down ? 2.8 : 1.8, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = palette[1] || '#ff4444';
+      ctx.globalAlpha = 0.16 + energy * 0.28;
+      ctx.lineWidth = 0.75;
+      ctx.beginPath();
+      ctx.arc(pointer.x, pointer.y, 8 + energy * 8, 0, TAU);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    };
+
+    const animate = (now) => {
+      const dt = Math.min(40, now - lastTime);
+      lastTime = now;
+      frameCount += 1;
+
+      const pointer = pointerRef.current;
+      pointer.energy *= Math.pow(spec.physics.energyDecay, dt / 16.67);
+      pointer.speed *= 0.9;
+      mirror.style.setProperty('--mirror-energy', pointer.energy.toFixed(3));
+
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = profile.reducedMotion ? 'rgba(0,0,0,0.52)' : 'rgba(0,0,0,0.28)';
+      ctx.fillRect(0, 0, width, height);
+
+      if (frameCount % profile.connectionEvery === 0) drawConnections();
 
       ctx.globalCompositeOperation = 'lighter';
-      p.forEach((particle) => { particle.update(frame, mouseRef.current); particle.draw(ctx); });
+      particlesRef.current.forEach((particle) => {
+        particle.update(now);
+        particle.draw();
+      });
       ctx.globalCompositeOperation = 'source-over';
 
-      if (mouseRef.current.x > 0) {
-        ctx.fillStyle = 'rgba(255, 223, 115, 0.6)'; ctx.beginPath(); ctx.arc(mouseRef.current.x, mouseRef.current.y, 2, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 68, 68, 0.4)'; ctx.beginPath(); ctx.arc(mouseRef.current.x, mouseRef.current.y, 10, 0, Math.PI * 2); ctx.stroke();
-      }
+      drawRipples(now);
+      drawContact();
+
       animationRef.current = requestAnimationFrame(animate);
-      frame += 16;
     };
-    animate();
-    return () => cancelAnimationFrame(animationRef.current);
-  }, [currentShape, theoremId]);
+
+    animationRef.current = requestAnimationFrame(animate);
+
+    let resizeRaf = 0;
+    const observer = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(() => {
+          cancelAnimationFrame(resizeRaf);
+          resizeRaf = requestAnimationFrame(resize);
+        })
+      : null;
+    observer?.observe(mirror);
+
+    return () => {
+      cancelAnimationFrame(animationRef.current);
+      cancelAnimationFrame(resizeRaf);
+      observer?.disconnect();
+      ripplesRef.current = [];
+    };
+  }, [currentShape, profile.connectionEvery, profile.dprCap, profile.enableParticleGlow, profile.enableRipples, profile.key, profile.lineStep, profile.lineStepJ, profile.particleBudget, profile.reducedMotion, profile.touchFirst, spec, theoremId]);
 
   return (
     <div
-      className="scrying-mirror"
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      onTouchMove={(e) => { const rect = e.currentTarget.getBoundingClientRect(); mouseRef.current = { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top }; }}
-      onTouchEnd={handleMouseLeave}
+      ref={mirrorRef}
+      className="scrying-mirror living-black-mirror"
+      data-field={spec.field}
+      data-active="false"
+      data-pressing="false"
+      onPointerMove={handlePointerMove}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      onPointerLeave={handlePointerLeave}
+      role="img"
+      aria-label={`Interactive scrying mirror for Theorem ${theoremId}. Trace to disturb the ${spec.field} field; press and hold to draw it inward.`}
     >
-      <canvas ref={canvasRef} />
+      <canvas ref={canvasRef} aria-hidden="true" />
     </div>
   );
 }
