@@ -1,0 +1,36 @@
+{
+  "name": "monas-hieroglyphica",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "The Living Grimoire — an interactive, operable manifestation of John Dee's Monas Hieroglyphica (1564).",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "verify:mirror": "node scripts/verify-living-mirror.mjs",
+    "verify:performance": "node scripts/verify-performance-contract.mjs",
+    "verify:release-polish": "node scripts/verify-release-polish.mjs",
+    "verify:release-audit": "node scripts/verify-release-audit.mjs",
+    "verify:security": "npm audit --omit=dev --audit-level=high",
+    "check": "npm run verify:mirror && npm run verify:performance && npm run verify:release-polish && npm run verify:release-audit && npm run build",
+    "release:check": "npm run check && npm run verify:security"
+  },
+  "dependencies": {
+    "@react-three/drei": "^9.114.0",
+    "@react-three/fiber": "^8.17.10",
+    "@react-three/postprocessing": "^2.16.3",
+    "framer-motion": "^11.11.0",
+    "postprocessing": "^6.36.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "vite": "^5.4.10"
+  }
+}

@@ -1,0 +1,208 @@
+/* Release-candidate polish: hierarchy and navigation only.
+   Keep this layer compositor-cheap and independent from the Black Mirror. */
+
+.reliquary-section-compact {
+  max-width: 42rem;
+  margin-top: 1.8rem;
+}
+
+.reliquary-section-compact .reliquary-illumination {
+  height: clamp(218px, 44vw, 330px);
+  border-radius: 1.15rem;
+}
+
+.reliquary-section-compact .reliquary-echo,
+.reliquary-section-compact .reliquary-operative {
+  width: min(60%, 250px);
+}
+
+.reliquary-section-compact .reliquary-caption {
+  max-width: 39rem;
+  margin-inline: auto;
+}
+
+.theorem-rail {
+  overflow: visible;
+}
+
+.theorem-rail-heading {
+  width: min(100%, 64rem);
+  margin: 0 auto 0.45rem;
+  padding-inline: 0.85rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.theorem-rail-kicker {
+  color: rgba(255, 223, 115, 0.72);
+  font-family: 'MedievalSharp', cursive;
+  font-size: 0.66rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.theorem-rail-hint {
+  color: rgba(255, 223, 115, 0.58);
+  font-family: 'IM Fell English', serif;
+  font-size: 0.73rem;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.theorem-rail-shell {
+  position: relative;
+  width: min(100%, 66rem);
+  margin-inline: auto;
+}
+
+.theorem-rail-list {
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 223, 115, 0.32) transparent;
+  padding-inline: 3.35rem;
+  padding-bottom: 0.85rem;
+}
+
+.theorem-rail-list::-webkit-scrollbar {
+  height: 4px;
+}
+
+.theorem-rail-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.theorem-rail-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 223, 115, 0.3);
+  border-radius: 999px;
+}
+
+.theorem-rail-node {
+  scroll-snap-align: center;
+}
+
+.theorem-rail-control {
+  position: absolute;
+  z-index: 8;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  margin-top: -25px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 223, 115, 0.26);
+  border-radius: 999px;
+  background: rgba(12, 8, 5, 0.9);
+  color: rgba(255, 223, 115, 0.92);
+  font-family: Georgia, serif;
+  font-size: 1.35rem;
+  line-height: 1;
+  box-shadow: 0 0 22px rgba(0, 0, 0, 0.42);
+  transition: transform 160ms ease, opacity 160ms ease, border-color 160ms ease;
+}
+
+.theorem-rail-control:active {
+  transform: scale(0.94);
+}
+
+.theorem-rail-control-left { left: 0.2rem; }
+.theorem-rail-control-right { right: 0.2rem; }
+
+.theorem-rail-fade {
+  position: absolute;
+  z-index: 6;
+  top: 0;
+  bottom: 0.55rem;
+  width: 3.7rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.theorem-rail-fade.is-visible { opacity: 1; }
+.theorem-rail-fade-left {
+  left: 0;
+  background: linear-gradient(90deg, rgba(8, 6, 4, 0.9), transparent);
+}
+.theorem-rail-fade-right {
+  right: 0;
+  background: linear-gradient(270deg, rgba(8, 6, 4, 0.9), transparent);
+}
+
+.theorem-rail-current {
+  position: relative;
+}
+
+.theorem-rail-current::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -0.1rem;
+  width: 18px;
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, rgba(255, 223, 115, 0.82), transparent);
+}
+
+@media (max-width: 520px) {
+  .reliquary-section-compact {
+    margin-top: 1.45rem;
+  }
+
+  .reliquary-section-compact .reliquary-illumination {
+    height: 230px;
+    border-radius: 0.95rem;
+  }
+
+  .reliquary-section-compact .reliquary-echo,
+  .reliquary-section-compact .reliquary-operative {
+    width: min(64%, 225px);
+  }
+
+  .theorem-rail-heading {
+    align-items: center;
+    margin-bottom: 0.25rem;
+    padding-inline: 0.7rem;
+  }
+
+  .theorem-rail-kicker {
+    font-size: 0.61rem;
+  }
+
+  .theorem-rail-hint {
+    font-size: 0.68rem;
+  }
+
+  .theorem-rail-list {
+    padding-inline: 3.2rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .theorem-rail-hint,
+  .theorem-rail-control,
+  .theorem-rail-fade {
+    display: none;
+  }
+
+  .theorem-rail-list {
+    padding-inline: 1rem;
+    padding-bottom: 0.4rem;
+    scrollbar-width: none;
+  }
+
+  .theorem-rail-list::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theorem-rail-control,
+  .theorem-rail-fade {
+    transition: none;
+  }
+}

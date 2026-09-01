@@ -1,0 +1,30 @@
+// Per-theorem particle / sigil palettes. Index 0 is the dominant "ink",
+// 1 the secondary, 2+ accents. Consumed by ParticleSigil and MonadOrb.
+export const PALETTES = {
+  1: ['#ffdf73', '#ffffff', '#fff7d6'],
+  2: ['#ff4444', '#ff8c00', '#ffdf73'],
+  3: ['#44aaff', '#e6f2ff', '#73ffdf'],
+  4: ['#b366ff', '#e6ccff', '#ff66b3'],
+  5: ['#00ffcc', '#ff00ff', '#ffffff'],
+  6: ['#ff3366', '#ff9933', '#ffff66'],
+  7: ['#33ff33', '#ccff33', '#ffffff'],
+  8: ['#9933ff', '#33ccff', '#ffdf73'],
+  9: ['#ff0055', '#5500ff', '#ffaaaa'],
+  10: ['#ffffff', '#ffdf73', '#ff4444', '#44aaff'],
+  11: ['#f5e642', '#ffd700', '#ffffff'],
+  12: ['#ff00ff', '#00ffff', '#ffffff'],
+  13: ['#42f554', '#00ffaa', '#e6ff00'],
+  14: ['#ff3333', '#ff9933', '#ffdf73'],
+  15: ['#ffffff', '#ffdf73', '#ff4444', '#44aaff', '#b366ff'],
+  16: ['#ff8800', '#ff2200', '#ffff00'],
+  17: ['#00ffaa', '#00ffff', '#ffffff'],
+  18: ['#ff00ff', '#ffaa00', '#ffffff'],
+  19: ['#bbbbff', '#8844ff', '#ffffff'],
+  20: ['#ffcc00', '#ff0000', '#ffffff'],
+  21: ['#ffffff', '#aaaaaa', '#ff0000'],
+  22: ['#ffffff', '#ffffaa', '#ffff00', '#ffddaa'],
+  23: ['#ff2222', '#ffaa00', '#ff00ff', '#00ffff'],
+  24: ['#ffffff', '#eeeeee', '#dddddd', '#cccccc'],
+};
+
+export const getPalette = (id) => PALETTES[id] || PALETTES[1];

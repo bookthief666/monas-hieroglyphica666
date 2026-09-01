@@ -1,0 +1,259 @@
+/*
+ * Living Black Mirror — additive refinement layer.
+ * The surrounding Living Grimoire remains Claude's design; this stylesheet only
+ * deepens the shew-stone itself and responds to the canonical manifestation law.
+ */
+
+.scrying-mirror.living-black-mirror {
+  --mirror-x: 50%;
+  --mirror-y: 50%;
+  --mirror-energy: 0;
+  --mirror-operative: 0;
+  --mirror-caustic: 0.42;
+  --mirror-engraving: 0.12;
+  --mirror-chroma: 0.14;
+  --mirror-depth: 0.5;
+  --mirror-skeleton: 0.13;
+  --mirror-depth-x: 0px;
+  --mirror-depth-y: 0px;
+  --mirror-surface-x: 0px;
+  --mirror-surface-y: 0px;
+  --mirror-primary: var(--ink-gold);
+  --mirror-secondary: var(--ink-red);
+  --mirror-tertiary: var(--ink-gold);
+  isolation: isolate;
+  touch-action: pan-y pinch-zoom;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  contain: layout paint;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(20,16,20,0.52) 0%, rgba(5,4,7,0.82) 38%, rgba(0,0,0,0.98) 78%),
+    #010101;
+  border-color: rgba(212, 175, 55, 0.42);
+  box-shadow:
+    inset 0 0 82px rgba(0,0,0,0.96),
+    inset 0 0 18px rgba(255,255,255,0.025),
+    0 0 38px rgba(212,175,55,0.22);
+  transition: border-color 280ms ease, box-shadow 420ms ease, filter 420ms ease;
+}
+
+.scrying-mirror.living-black-mirror .mirror-depth-volume {
+  position: absolute;
+  inset: 3%;
+  z-index: 1;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(var(--mirror-depth-x), var(--mirror-depth-y)) scale(0.985);
+  opacity: 0.68;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.018) 0 9%, transparent 24%),
+    radial-gradient(ellipse at 44% 37%, transparent 0 36%, rgba(255,255,255,0.026) 52%, transparent 68%),
+    radial-gradient(circle at 50% 50%, transparent 0 60%, rgba(212,175,55,0.035) 72%, rgba(0,0,0,0.7) 92%);
+  box-shadow:
+    inset 0 0 34px rgba(255,255,255,0.018),
+    inset 0 0 72px rgba(0,0,0,0.8);
+  transition: transform 100ms linear, opacity 260ms ease;
+}
+
+.scrying-mirror.living-black-mirror canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+}
+
+.scrying-mirror.living-black-mirror .mirror-inner-rim {
+  position: absolute;
+  inset: 2.2%;
+  z-index: 4;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 1px solid rgba(255,255,255,0.035);
+  box-shadow:
+    inset 0 0 16px rgba(255,255,255,0.02),
+    inset 8px 10px 28px rgba(255,255,255,0.018),
+    inset -12px -16px 34px rgba(0,0,0,0.68);
+  opacity: 0.86;
+}
+
+.scrying-mirror.living-black-mirror::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: var(--mirror-caustic);
+  transform: translate(var(--mirror-surface-x), var(--mirror-surface-y));
+  background:
+    radial-gradient(circle at var(--mirror-x) var(--mirror-y), rgba(255,255,255,0.19) 0 1px, rgba(255,223,115,0.075) 3px, transparent 19%),
+    linear-gradient(122deg, transparent 8%, rgba(255,255,255,0.018) 28%, rgba(255,255,255,0.105) 41%, rgba(255,255,255,0.016) 51%, transparent 64%),
+    radial-gradient(ellipse at 35% 22%, rgba(255,255,255,0.095), transparent 28%),
+    radial-gradient(ellipse at 67% 78%, rgba(255,255,255,0.024), transparent 23%),
+    radial-gradient(circle at 50% 55%, transparent 54%, rgba(255,255,255,0.024) 72%, rgba(0,0,0,0.42) 100%);
+  mix-blend-mode: screen;
+  transition: opacity 240ms ease, transform 110ms linear;
+}
+
+.scrying-mirror.living-black-mirror::after {
+  content: '';
+  position: absolute;
+  inset: 7%;
+  z-index: 3;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: var(--mirror-engraving);
+  transform: translate(var(--mirror-depth-x), var(--mirror-depth-y));
+  background:
+    repeating-conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,0.16) 0deg 0.35deg, transparent 0.35deg 15deg),
+    repeating-radial-gradient(circle at 50% 50%, transparent 0 18px, rgba(255,223,115,0.11) 18.5px 19px, transparent 19.5px 31px);
+  mask-image: radial-gradient(circle, transparent 0 10%, black 22% 76%, transparent 96%);
+  -webkit-mask-image: radial-gradient(circle, transparent 0 10%, black 22% 76%, transparent 96%);
+  mix-blend-mode: screen;
+  animation: mirror-engraving-breathe 13s ease-in-out infinite alternate;
+}
+
+.scrying-mirror.living-black-mirror[data-active='true'] {
+  border-color: var(--mirror-primary);
+  box-shadow:
+    inset 0 0 76px rgba(0,0,0,0.95),
+    inset 0 0 18px rgba(255,255,255,0.03),
+    0 0 36px rgba(212,175,55,0.3),
+    0 0 8px var(--mirror-primary);
+}
+
+.scrying-mirror.living-black-mirror[data-pressing='true'] {
+  box-shadow:
+    inset 0 0 88px rgba(0,0,0,0.97),
+    inset 0 0 26px rgba(255,255,255,0.035),
+    0 0 44px rgba(212,175,55,0.34),
+    0 0 12px var(--mirror-primary);
+}
+
+.scrying-mirror.living-black-mirror[data-pressing='true']::before {
+  opacity: 0.68;
+}
+
+.scrying-mirror.living-black-mirror[data-operative='true'] {
+  border-color: var(--mirror-tertiary);
+  box-shadow:
+    inset 0 0 92px rgba(0,0,0,0.965),
+    inset 0 0 30px rgba(255,255,255,0.045),
+    0 0 50px rgba(212,175,55,0.36),
+    0 0 18px var(--mirror-primary),
+    0 0 5px var(--mirror-secondary);
+}
+
+.scrying-mirror.living-black-mirror[data-operative='true'] .mirror-depth-volume {
+  opacity: 0.94;
+  transform: translate(var(--mirror-depth-x), var(--mirror-depth-y)) scale(0.978);
+}
+
+.scrying-mirror.living-black-mirror[data-operative='true'] .mirror-inner-rim {
+  border-color: var(--mirror-primary);
+  opacity: 0.7;
+}
+
+.scrying-mirror.living-black-mirror[data-resolving='true'] .mirror-inner-rim {
+  animation: mirror-resolution 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.scrying-mirror.living-black-mirror[data-quality='reduced']::after {
+  opacity: calc(var(--mirror-engraving) * 0.65);
+  animation: none;
+}
+
+.scrying-mirror.living-black-mirror[data-quality='reduced']::before {
+  opacity: 0.28;
+}
+
+.scrying-mirror.living-black-mirror[data-field='axial']::after,
+.scrying-mirror.living-black-mirror[data-field='lattice']::after,
+.scrying-mirror.living-black-mirror[data-field='hypercube']::after,
+.scrying-mirror.living-black-mirror[data-field='polyhedral']::after {
+  background:
+    linear-gradient(45deg, transparent 49.5%, rgba(255,255,255,0.18) 49.7% 50.3%, transparent 50.5%),
+    linear-gradient(-45deg, transparent 49.5%, rgba(255,255,255,0.13) 49.7% 50.3%, transparent 50.5%),
+    repeating-conic-gradient(from 45deg, rgba(255,223,115,0.11) 0deg 0.5deg, transparent 0.5deg 22.5deg),
+    repeating-radial-gradient(circle, transparent 0 23px, rgba(255,255,255,0.08) 23.5px 24px, transparent 24.5px 38px);
+}
+
+.scrying-mirror.living-black-mirror[data-field='vortex']::after,
+.scrying-mirror.living-black-mirror[data-field='toroidal']::after,
+.scrying-mirror.living-black-mirror[data-field='spiral']::after,
+.scrying-mirror.living-black-mirror[data-field='lunar']::after {
+  background:
+    repeating-radial-gradient(ellipse at 50% 50%, transparent 0 15px, rgba(255,255,255,0.12) 15.5px 16px, transparent 16.5px 28px),
+    repeating-conic-gradient(from 13deg, rgba(255,223,115,0.1) 0deg 0.45deg, transparent 0.45deg 18deg);
+}
+
+.scrying-mirror.living-black-mirror[data-field='toroidal'] .mirror-depth-volume,
+.scrying-mirror.living-black-mirror[data-field='spiral'] .mirror-depth-volume {
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 0 25%, rgba(255,255,255,0.035) 36%, transparent 48%),
+    radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0.4) 0 17%, transparent 20% 55%, rgba(0,0,0,0.62) 80%);
+}
+
+.scrying-mirror.living-black-mirror[data-field='solar']::after,
+.scrying-mirror.living-black-mirror[data-field='radiant']::after,
+.scrying-mirror.living-black-mirror[data-field='stellar']::after {
+  background:
+    repeating-conic-gradient(from 0deg, rgba(255,255,255,0.17) 0deg 0.45deg, transparent 0.45deg 12deg),
+    radial-gradient(circle, rgba(255,223,115,0.08) 0 3%, transparent 3.5% 46%, rgba(255,255,255,0.08) 46.5% 47%, transparent 47.5%);
+}
+
+.scrying-mirror.living-black-mirror[data-field='sephirothic']::after,
+.scrying-mirror.living-black-mirror[data-field='yantric']::after {
+  background:
+    linear-gradient(60deg, transparent 49.6%, rgba(255,255,255,0.12) 49.8% 50.2%, transparent 50.4%),
+    linear-gradient(-60deg, transparent 49.6%, rgba(255,255,255,0.1) 49.8% 50.2%, transparent 50.4%),
+    repeating-radial-gradient(circle, transparent 0 21px, rgba(255,223,115,0.08) 21.5px 22px, transparent 22.5px 34px);
+}
+
+.scrying-mirror.living-black-mirror[data-mode='projection'][data-operative='true']::before {
+  opacity: 0.72;
+  filter: saturate(1.15) contrast(1.08);
+}
+
+.scrying-mirror.living-black-mirror[data-mode='winding'][data-operative='true']::after,
+.scrying-mirror.living-black-mirror[data-mode='circulation'][data-operative='true']::after {
+  animation-duration: 5.5s;
+}
+
+.sigil-flat-group,
+.sigil-3d-group {
+  animation-duration: var(--manifestation-holo-seconds, 20s) !important;
+}
+
+@keyframes mirror-engraving-breathe {
+  0% { filter: blur(0px); transform: translate(var(--mirror-depth-x), var(--mirror-depth-y)) rotate(-0.3deg) scale(0.995); }
+  50% { filter: blur(0.12px); }
+  100% { filter: blur(0px); transform: translate(var(--mirror-depth-x), var(--mirror-depth-y)) rotate(0.35deg) scale(1.008); }
+}
+
+@keyframes mirror-resolution {
+  0% { opacity: 0.9; box-shadow: inset 0 0 8px var(--mirror-primary), 0 0 4px var(--mirror-primary); }
+  42% { opacity: 1; box-shadow: inset 0 0 28px var(--mirror-primary), 0 0 20px var(--mirror-secondary); }
+  100% { opacity: 0.78; box-shadow: inset 0 0 16px rgba(255,255,255,0.02), inset -12px -16px 34px rgba(0,0,0,0.68); }
+}
+
+@media (pointer: coarse), (hover: none) {
+  .scrying-mirror.living-black-mirror { cursor: auto; }
+  .scrying-mirror.living-black-mirror::before { opacity: 0.32; }
+  .scrying-mirror.living-black-mirror .mirror-depth-volume { opacity: 0.62; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrying-mirror.living-black-mirror,
+  .scrying-mirror.living-black-mirror::before,
+  .scrying-mirror.living-black-mirror::after,
+  .scrying-mirror.living-black-mirror .mirror-depth-volume,
+  .scrying-mirror.living-black-mirror .mirror-inner-rim {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
