@@ -16,7 +16,12 @@ assert.doesNotMatch(apparition, /opacity-0/, 'Safe apparition must not hide an a
 
 assert.match(css, /mix-blend-mode:\s*normal\s*!important/, 'Fold-safe mode must neutralize blend modes');
 assert.match(css, /backdrop-filter:\s*none\s*!important/, 'Fold-safe mode must disable backdrop filtering');
-assert.match(css, /living-black-mirror > canvas/, 'Fold-safe mode must explicitly isolate the 2D mirror canvas');
+assert.match(css, /living-black-mirror > canvas/, 'Fold-safe mode must explicitly define the 2D mirror canvas');
 assert.match(css, /background:\s*radial-gradient[\s\S]*#000/, 'Fold-safe mirror must have an explicit dark backing field');
+assert.match(css, /contain:\s*none\s*!important/, 'Fold-safe mirror must not use contain: paint');
+assert.match(css, /position:\s*relative\s*!important/, 'Fold-safe canvas must stay in ordinary DOM flow');
+assert.doesNotMatch(css, /translateZ\(/, 'Fold-safe mirror must not GPU-promote the canvas with translateZ');
+assert.doesNotMatch(css, /position:\s*absolute\s*!important;[\s\S]{0,180}living-black-mirror > canvas/, 'Fold-safe canvas must not be forced into an absolute compositor layer');
+assert.match(css, /mirror-depth-volume,[\s\S]*mirror-inner-rim[\s\S]*display:\s*none\s*!important/, 'Fold-safe mode must suppress auxiliary optical layers');
 
-console.log('Fold runtime verifier PASS: force2d is live, inactive apparitions unmount, and Samsung-safe compositor rules are wired.');
+console.log('Fold runtime verifier PASS: force2d is live, inactive apparitions unmount, and the Fold canvas stays on a non-promoted compositor path.');
