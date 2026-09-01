@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, lazy, Suspense, Component } from 'r
 import { THEOREMS } from './data/theorems.js';
 import { getPalette } from './data/palettes.js';
 import { stageForTheorem } from './lib/stages.js';
+import useDeviceProfile from './lib/useDeviceProfile.js';
+import { shouldUse3DOrb } from './lib/renderCapability.js';
 import Threshold from './components/Threshold.jsx';
 import { AudioEngine, MuteButton, RitualResonance } from './components/AudioEngine.jsx';
 import ParticleSigil from './components/ParticleSigil.jsx';
@@ -15,15 +17,6 @@ import TheoremNav from './components/TheoremNav.jsx';
 
 // The flagship 3D orb is code-split: the text-first experience never waits on WebGL.
 const MonadOrb = lazy(() => import('./components/MonadOrb.jsx'));
-
-const reducedMotion = () =>
-  typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-const isMobile = () => {
-  if (typeof navigator === 'undefined') return false;
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-    (navigator.maxTouchPoints > 0 && window.innerWidth < 1024);
-};
 
 const hasWebGL = () => {
   if (typeof window === 'undefined') return false;
@@ -43,20 +36,31 @@ class OrbBoundary extends Component {
 }
 
 function HeroSigil({ theorem, stage }) {
-  const [allow3D, setAllow3D] = useState(() => hasWebGL() && !reducedMotion() && !isMobile());
+  const profile = useDeviceProfile();
+  const [webglAvailable] = useState(hasWebGL);
+  const [orbHealthy, setOrbHealthy] = useState(true);
   const [orbMounted, setOrbMounted] = useState(false);
   const containerRef = useRef(null);
   const fallback = <ParticleSigil currentShape={theorem.shape} theoremId={theorem.id} />;
 
+  const allow3D = orbHealthy && shouldUse3DOrb({
+    ...profile,
+    webglAvailable,
+    maxTouchPoints: typeof navigator !== 'undefined' ? navigator.maxTouchPoints : 0,
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+  });
+
   useEffect(() => {
-    if (!allow3D || !orbMounted) return;
+    if (!allow3D || !orbMounted) return undefined;
     const timer = setTimeout(() => {
       try {
         const canvas = containerRef.current?.querySelector('canvas');
-        if (!canvas) { setAllow3D(false); return; }
+        if (!canvas) { setOrbHealthy(false); return; }
         const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
-        if (!gl || gl.isContextLost()) setAllow3D(false);
-      } catch { setAllow3D(false); }
+        if (!gl || gl.isContextLost()) setOrbHealthy(false);
+      } catch {
+        setOrbHealthy(false);
+      }
     }, 3000);
     return () => clearTimeout(timer);
   }, [allow3D, orbMounted]);
