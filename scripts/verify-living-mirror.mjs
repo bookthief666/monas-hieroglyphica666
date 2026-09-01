@@ -19,6 +19,9 @@ import {
   deriveRitualContinuity,
   initialAnatomiaOffsets,
   continuityRegisterDetail,
+  theoremMemoryImprint,
+  returningWorkState,
+  rankConcordances,
 } from '../src/lib/ritualContinuity.js';
 
 const EXPECTED_FIELDS = Object.freeze({
@@ -47,6 +50,7 @@ let sampledSkeletonPoints = 0;
 let sampledRoles = 0;
 let verifiedProjections = 0;
 let continuityCases = 0;
+let memoryImprintCases = 0;
 
 for (const theorem of THEOREMS) {
   const { id: theoremId, shape } = theorem;
@@ -74,28 +78,31 @@ for (const theorem of THEOREMS) {
   assert.ok(projectionKinds.includes(projection.operative));
   verifiedProjections += 2;
 
-  const continuity = deriveRitualContinuity({
-    lastOperation: {
-      theoremId,
-      field: spec.field,
-      mode: spec.operative.mode,
-      charge: 0.64,
-      direction: theoremId % 2 === 0 ? -0.45 : 0.45,
-      tone: spec.tone,
-    },
-    theoremMemory: {
-      count: 3,
-      strongestCharge: 0.78,
-      lastMode: spec.operative.mode,
-      lastDirection: 0.45,
-      lastTone: spec.tone,
-    },
-  });
+  const theoremMemory = {
+    count: 3,
+    strongestCharge: 0.78,
+    lastMode: spec.operative.mode,
+    lastDirection: theoremId % 2 === 0 ? -0.45 : 0.45,
+    lastTone: spec.tone,
+  };
+  const lastOperation = {
+    theoremId,
+    field: spec.field,
+    mode: spec.operative.mode,
+    charge: 0.64,
+    direction: theoremMemory.lastDirection,
+    tone: spec.tone,
+  };
+  const continuity = deriveRitualContinuity({ lastOperation, theoremMemory });
   finiteObject(continuity, `continuity[${theoremId}]`);
   assert.ok(continuity.imprint > 0 && continuity.imprint <= 0.82);
   assert.ok(continuity.exegesisReveal >= 0 && continuity.exegesisReveal <= 0.2);
   assert.ok(continuity.anatomiaTension >= 0 && continuity.anatomiaTension <= 0.72);
   assert.ok(continuity.operatioText.length > 20);
+
+  const navImprint = theoremMemoryImprint(theoremMemory);
+  assert.ok(navImprint > 0 && navImprint <= 0.9, `Theorem ${theoremId} memory residue must be bounded`);
+  memoryImprintCases += 1;
 
   const initialOffsets = initialAnatomiaOffsets(theoremId, continuity);
   assert.deepEqual(Object.keys(initialOffsets).sort(), ['aries', 'crux', 'luna', 'sol']);
@@ -105,7 +112,7 @@ for (const theorem of THEOREMS) {
   for (const register of ['exegesis', 'application', 'operate']) {
     const detail = continuityRegisterDetail(theoremId, register, {
       continuity,
-      theoremMemory: { lastTone: spec.tone },
+      theoremMemory,
     });
     assert.equal(detail.theoremId, theoremId);
     assert.equal(detail.register, register);
@@ -147,21 +154,53 @@ for (const theorem of THEOREMS) {
   assert.deepEqual([...roles].sort(), ['aether', 'singularity', 'structural']);
 }
 
+const returningMemory = {
+  totalOperations: 4,
+  last: { theoremId: 23, mode: 'projection', charge: 0.72, direction: -0.35 },
+  theorems: {
+    23: { count: 4, strongestCharge: 0.81, lastMode: 'projection', lastDirection: -0.35 },
+  },
+};
+const returnState = returningWorkState(returningMemory);
+assert.equal(returnState.returning, true);
+assert.equal(returnState.theoremId, 23);
+assert.equal(returnState.mode, 'projection');
+assert.ok(returnState.imprint > 0);
+assert.equal(returningWorkState(null).returning, false);
+
+const concordances = [
+  { tradition: 'General Hermeticism', figure: 'Mercurius', gloss: 'A general synthetic relation.' },
+  { tradition: 'Platonic Geometry', figure: 'Projection of Form', gloss: 'A higher-dimensional body appears through projection.' },
+];
+const ranked = rankConcordances(concordances, { count: 2, mode: 'projection' });
+assert.equal(ranked[0].figure, 'Projection of Form', 'Performed operations must be able to foreground a resonant concordance');
+
 assert.equal(new Set(THEOREMS.map((theorem) => theorem.shape)).size, supportedParticleShapes.length);
 assert.equal(verifiedProjections, 48);
 assert.equal(continuityCases, 72, 'Every theorem must carry continuity into Exegesis, Operatio, and Anatomia');
+assert.equal(memoryImprintCases, 24, 'Every theorem memory must map to bounded ladder residue');
 assert.equal(readMirrorMemory(), null, 'Mirror memory must be safe in non-browser verification');
 
 const appSource = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
 const apparitionSource = readFileSync(new URL('../src/components/SafeRitualApparition.jsx', import.meta.url), 'utf8');
+const metamorphosisSource = readFileSync(new URL('../src/components/RegisterMetamorphosis.jsx', import.meta.url), 'utf8');
+const thresholdSource = readFileSync(new URL('../src/components/Threshold.jsx', import.meta.url), 'utf8');
+const navSource = readFileSync(new URL('../src/components/TheoremNav.jsx', import.meta.url), 'utf8');
+const scholarSource = readFileSync(new URL('../src/components/ScholarMargin.jsx', import.meta.url), 'utf8');
 assert.match(appSource, /queryFlag\('force2d'\)/, 'The clean candidate must retain the explicit 2D QA escape hatch');
 assert.match(appSource, /renderer-diagnostic/, 'Renderer diagnostics must remain opt-in and available');
 assert.match(appSource, /monas:ritual-register/, 'Register crossings must emit continuity events');
+assert.match(appSource, /RegisterMetamorphosis/, 'Register crossings must visibly originate at the shew-stone');
+assert.match(appSource, /resumeTheorem/, 'Re-entry must resume the last worked theorem rather than reset to I');
 assert.match(apparitionSource, /if \(!active\) return null;/, 'Inactive theorem apparitions must unmount completely');
+assert.match(metamorphosisSource, /if \(!transition\) return null;/, 'Inactive register metamorphosis must unmount completely');
+assert.match(thresholdSource, /Re-enter the Work/, 'The Threshold must distinguish first initiation from return');
+assert.match(navSource, /theorem-memory-orbit/, 'The theorem ladder must retain non-gamified ritual residue');
+assert.match(scholarSource, /rankConcordances/, 'Scholar\'s Margin must be able to foreground operation-resonant concordances');
 
 console.log(
-  `Living Grimoire V verifier PASS: 24 canonical theorems, ${verifiedProjections} secondary projections, `
-  + `${continuityCases} continuity register cases, ${sampledTargets} particle targets, `
-  + `${sampledSkeletonPoints} skeleton points, ${sampledRoles} role targets, `
-  + `${recoveredProjectionRelics.length} recovered relic geometries.`,
+  `Living Grimoire VI verifier PASS: 24 canonical theorems, ${verifiedProjections} secondary projections, `
+  + `${continuityCases} continuity register cases, ${memoryImprintCases} ladder-memory cases, `
+  + `${sampledTargets} particle targets, ${sampledSkeletonPoints} skeleton points, ${sampledRoles} role targets, `
+  + `${recoveredProjectionRelics.length} recovered relic geometries, returning Threshold + register metamorphosis locked.`,
 );
