@@ -301,10 +301,11 @@ export default function ParticleSigil({ currentShape, theoremId }) {
     mirror.style.setProperty('--mirror-secondary', palette[1] || 'var(--ink-red)');
     mirror.style.setProperty('--mirror-tertiary', palette[2] || palette[0] || 'var(--ink-gold)');
     const particleCount = profile.particleBudget;
-    let width = 0;
-    let height = 0;
-    let center = { x: 0, y: 0 };
-    let baseRadius = 90;
+    const initialRect = mirror.getBoundingClientRect();
+    let width = Math.max(1, initialRect.width);
+    let height = Math.max(1, initialRect.height);
+    let center = { x: width / 2, y: height / 2 };
+    let baseRadius = Math.min(width, height) * (width < 300 ? 0.27 : 0.285);
     let frameCount = 0;
     let lastTime = performance.now();
 
