@@ -33,7 +33,7 @@ jobs:
         run: npm ci
 
       - name: Verify and build release artifact
-        run: npm run check
+        run: npm run release:check
 
       - name: Configure Pages (auto-enable if needed)
         uses: actions/configure-pages@v5
