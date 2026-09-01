@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import RitualProjection from './RitualProjection.jsx';
+import LivingMarginalia from './LivingMarginalia.jsx';
 import { getProjectionSpec } from '../lib/projectionSpec.js';
+import '../vision-completion.css';
 
 const prettyKind = (kind = '') => kind
   .split('-')
@@ -39,6 +41,7 @@ export default function ReliquaryIllumination({ theoremId, continuity = null }) 
         key={`${theoremId}-${cycle}`}
         className={`reliquary-illumination ${projection.relic ? 'is-recovered-relic' : ''}`}
       >
+        <LivingMarginalia theoremId={theoremId} viewMode="reliquary" />
         <div className="reliquary-grid" aria-hidden="true" />
         <div className="reliquary-aura" aria-hidden="true" />
         <div className="reliquary-dust-field" aria-hidden="true" />
