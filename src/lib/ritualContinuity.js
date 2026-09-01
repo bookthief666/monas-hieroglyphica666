@@ -75,6 +75,27 @@ const MODE_LANGUAGE = Object.freeze({
   },
 });
 
+const CONCORDANCE_TERMS = Object.freeze({
+  emanation: ['emanat', 'nous', 'yod', 'kabbal', 'neoplat', 'logos', 'one'],
+  collapse: ['point', 'seed', 'yod', 'bindu', 'monad', 'one', 'nous'],
+  radiance: ['solar', 'sun', 'light', 'fire', 'theurg', 'illum', 'apollo'],
+  flare: ['fire', 'light', 'solar', 'theurg', 'ecstas', 'radiance'],
+  lensing: ['moon', 'lunar', 'reflect', 'recept', 'soma', 'mirror', 'image'],
+  'axis-lock': ['cross', 'axis', 'four', 'element', 'quatern', 'cardinal'],
+  crystallize: ['number', 'measure', 'ratio', 'geometry', 'pythag', 'lattice'],
+  'star-pulse': ['star', 'five', 'venus', 'microcosm', 'pent', 'human'],
+  circulation: ['cycle', 'circle', 'ourobor', 'rotation', 'wheel', 'circul', 'serpent'],
+  winding: ['spiral', 'serpent', 'coil', 'cycle', 'return', 'ourobor'],
+  resonance: ['music', 'harmony', 'ratio', 'number', 'logos', 'proportion'],
+  'facet-lock': ['poly', 'solid', 'element', 'plato', 'geometry', 'body'],
+  opposition: ['tantra', 'shaiva', 'nondual', 'polarity', 'opposit', 'union', 'triangle'],
+  coagula: ['union', 'coniunct', 'alchemy', 'stone', 'integration', 'monad'],
+  gestation: ['egg', 'vessel', 'womb', 'alchemy', 'prima materia', 'birth'],
+  'path-pulse': ['kabbal', 'sephir', 'tree', 'path', 'hebrew', 'emanat'],
+  projection: ['dimension', 'projection', 'plato', 'form', 'geometry', 'hypercube'],
+  cohere: ['unity', 'one', 'monad', 'nondual', 'whole', 'relation'],
+});
+
 export function deriveRitualContinuity({ lastOperation = null, theoremMemory = null } = {}) {
   const count = Math.max(0, Number(theoremMemory?.count) || 0);
   const strongest = clamp(theoremMemory?.strongestCharge);
@@ -100,6 +121,44 @@ export function deriveRitualContinuity({ lastOperation = null, theoremMemory = n
     label: language.label,
     operatioText: language.operatio,
   };
+}
+
+export function theoremMemoryImprint(theoremMemory) {
+  if (!theoremMemory) return 0;
+  const count = Math.max(0, Number(theoremMemory.count) || 0);
+  const strongest = clamp(theoremMemory.strongestCharge);
+  if (count <= 0) return 0;
+  return clamp(0.12 + strongest * 0.58 + Math.min(0.2, Math.log2(count + 1) * 0.065), 0, 0.9);
+}
+
+export function returningWorkState(memory) {
+  const totalOperations = Math.max(0, Number(memory?.totalOperations) || 0);
+  const last = memory?.last || null;
+  const theoremMemory = last ? memory?.theorems?.[String(last.theoremId)] || null : null;
+  const continuity = deriveRitualContinuity({ lastOperation: last, theoremMemory });
+  return {
+    returning: totalOperations > 0 && !!last,
+    totalOperations,
+    theoremId: Number(last?.theoremId) || 1,
+    mode: last?.mode || theoremMemory?.lastMode || 'cohere',
+    direction: clamp(last?.direction ?? theoremMemory?.lastDirection, -1, 1),
+    imprint: continuity.imprint,
+    label: continuity.label,
+  };
+}
+
+export function rankConcordances(crossReferences = [], continuity = null) {
+  const refs = Array.isArray(crossReferences) ? crossReferences : [];
+  if (!continuity || continuity.count <= 0 || refs.length <= 1) return [...refs];
+  const terms = CONCORDANCE_TERMS[continuity.mode] || CONCORDANCE_TERMS.cohere;
+  return refs
+    .map((xref, index) => {
+      const haystack = `${xref?.tradition || ''} ${xref?.figure || ''} ${xref?.gloss || ''}`.toLowerCase();
+      const score = terms.reduce((sum, term) => sum + (haystack.includes(term) ? 1 : 0), 0);
+      return { xref, index, score };
+    })
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .map(({ xref }) => xref);
 }
 
 const PART_IDS = ['luna', 'sol', 'crux', 'aries'];
