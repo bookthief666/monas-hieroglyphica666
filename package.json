@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "verify:mirror": "node scripts/verify-living-mirror.mjs",
     "verify:performance": "node scripts/verify-performance-contract.mjs",
-    "check": "npm run verify:mirror && npm run verify:performance && npm run build"
+    "verify:release-polish": "node scripts/verify-release-polish.mjs",
+    "check": "npm run verify:mirror && npm run verify:performance && npm run verify:release-polish && npm run build"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.0",
