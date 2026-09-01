@@ -8,28 +8,19 @@ const prefersReducedMotion = () =>
 /**
  * useScrollDecrypt — the scrying engine of the kinetic typography.
  *
- * Returns a `reveal` ratio in [0,1] that the operator pulls from the aether
- * with their own body. The target reveal is the MAX of three sources, so the
- * text always resolves, but resolution feels *earned*:
- *   1. scroll progress of the article through the viewport (the descent of the gaze)
- *   2. cursor proximity to the text block (scrying — leaning into the glass)
- *   3. a slow auto-floor so reduced-motion / no-scroll readers still receive truth
- *
- * The returned value is eased per frame toward the target, so revelation breathes
- * rather than snaps. `key` resets the animation when the theorem/view changes.
- *
- * @param {React.RefObject} ref   the text container element
- * @param {any} key               changes to this reset the reveal to 0
+ * `initialReveal` is deliberately small and is used by Living Grimoire V to let
+ * a theorem remember prior work: a worked Exegesis returns slightly less opaque,
+ * never fully revealed and never bypassing the operator's scroll/gaze.
  */
-export function useScrollDecrypt(ref, key) {
-  const [reveal, setReveal] = useState(0);
-  const target = useRef(0);
-  const current = useRef(0);
+export function useScrollDecrypt(ref, key, { initialReveal = 0, autoSeconds = 9 } = {}) {
+  const baseReveal = Math.max(0, Math.min(0.35, Number(initialReveal) || 0));
+  const [reveal, setReveal] = useState(baseReveal);
+  const target = useRef(baseReveal);
+  const current = useRef(baseReveal);
   const pointer = useRef({ x: -9999, y: -9999 });
   const mountedAt = useRef(performance.now());
   const raf = useRef(0);
 
-  // reset on key change (new theorem / toggled view)
   useEffect(() => {
     if (prefersReducedMotion()) {
       current.current = 1;
@@ -37,11 +28,11 @@ export function useScrollDecrypt(ref, key) {
       setReveal(1);
       return;
     }
-    current.current = 0;
-    target.current = 0;
+    current.current = baseReveal;
+    target.current = baseReveal;
     mountedAt.current = performance.now();
-    setReveal(0);
-  }, [key]);
+    setReveal(baseReveal);
+  }, [key, baseReveal]);
 
   const recompute = useCallback(() => {
     const el = ref.current;
@@ -49,14 +40,10 @@ export function useScrollDecrypt(ref, key) {
     const rect = el.getBoundingClientRect();
     const vh = window.innerHeight || 1;
 
-    // 1) scroll progress: 0 when the block's top sits at 75% of the viewport,
-    //    1 once it has risen to ~15% — the act of scrolling decrypts the page.
     const start = vh * 0.75;
     const end = vh * 0.15;
     const scrollProg = Math.min(1, Math.max(0, (start - rect.top) / (start - end)));
 
-    // 2) cursor proximity: scrying. Within ~340px of the block centre the text
-    //    resolves under the gaze; the closer the operator leans, the clearer it gets.
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     const dx = pointer.current.x - cx;
@@ -64,12 +51,12 @@ export function useScrollDecrypt(ref, key) {
     const dist = Math.sqrt(dx * dx + dy * dy);
     const proximity = Math.min(1, Math.max(0, 1 - dist / (rect.height / 2 + 340)));
 
-    // 3) auto-floor: a gentle 9s creep so the text never stays hidden.
     const elapsed = (performance.now() - mountedAt.current) / 1000;
-    const autoFloor = Math.min(1, Math.max(0, (elapsed - 0.4) / 9));
+    const autoProgress = Math.min(1, Math.max(0, (elapsed - 0.4) / Math.max(1, autoSeconds)));
+    const autoFloor = baseReveal + (1 - baseReveal) * autoProgress;
 
-    target.current = Math.max(scrollProg, proximity * 0.95, autoFloor);
-  }, [ref]);
+    target.current = Math.max(baseReveal, scrollProg, proximity * 0.95, autoFloor);
+  }, [ref, baseReveal, autoSeconds]);
 
   useEffect(() => {
     if (prefersReducedMotion()) return;
@@ -85,7 +72,6 @@ export function useScrollDecrypt(ref, key) {
 
     const tick = () => {
       recompute();
-      // ease current toward target (asymmetric: reveal eagerly, never un-reveal hard)
       const t = target.current;
       const c = current.current;
       current.current = c + (t - c) * (t > c ? 0.08 : 0.02);
