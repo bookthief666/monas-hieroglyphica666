@@ -1,8 +1,10 @@
-name: Verify Living Black Mirror
+name: Verify Living Grimoire
 
 on:
   push:
-    branches: [agent/living-black-mirror-pass]
+    branches:
+      - agent/living-black-mirror-pass
+      - agent/living-grimoire-v-candidate
   pull_request:
     branches: [claude/ecstatic-euler-dwgsf]
   workflow_dispatch:
@@ -26,5 +28,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Verify mirror geometry and build
+      - name: Verify grimoire geometry, continuity, and build
         run: npm run check
