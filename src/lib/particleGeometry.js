@@ -1,5 +1,32 @@
 const TAU = Math.PI * 2;
 
+export const supportedParticleShapes = Object.freeze([
+  'line-circle',
+  'point-line-circle',
+  'sun-earth',
+  'sun-moon',
+  'cross-elements',
+  'cross-rotated',
+  'cross-quaternary',
+  'triangle-fire',
+  'square-circle',
+  'four-elements',
+  'aries-cross',
+  'metatron',
+  'icosahedron',
+  'torus',
+  'sri-yantra',
+  'pentagram',
+  'sacred-252',
+  'monad-full',
+  'hermetic-egg',
+  'sephiroth',
+  'albedo-rubedo',
+  'radiance',
+  'hypercube-stone',
+  'infinite-spiral',
+]);
+
 export function hash01(n, seed = 1) {
   const x = Math.sin((n + 1) * 12.9898 + seed * 78.233) * 43758.5453123;
   return x - Math.floor(x);
@@ -51,11 +78,78 @@ function projectedCubeEdges(radius) {
   const outer = [[-o, -o], [o, -o], [o, o], [-o, o]];
   const inner = [[-i + off, -i - off], [i + off, -i - off], [i + off, i - off], [-i + off, i - off]];
   const edges = [];
-  for (let k = 0; k < 4; k++) {
+  for (let k = 0; k < 4; k += 1) {
     edges.push([outer[k], outer[(k + 1) % 4]]);
     edges.push([inner[k], inner[(k + 1) % 4]]);
     edges.push([outer[k], inner[k]]);
   }
+  return edges;
+}
+
+function crossElementsEdges(radius) {
+  const edges = [];
+  const circleR = radius * 0.48;
+  const circleY = -radius * 0.2;
+  const circle = regularPolygon(48, circleR, -Math.PI / 2)
+    .map(([x, y]) => [x, y + circleY]);
+  for (let i = 0; i < circle.length; i += 1) {
+    edges.push([circle[i], circle[(i + 1) % circle.length]]);
+  }
+
+  const hornY = circleY - circleR * 0.86;
+  const hornSpread = radius * 0.34;
+  const hornRise = radius * 0.28;
+  const leftHorn = [];
+  const rightHorn = [];
+  for (let i = 0; i <= 16; i += 1) {
+    const t = i / 16;
+    const a = Math.PI * t;
+    leftHorn.push([-hornSpread * (0.16 + 0.84 * t), hornY - Math.sin(a) * hornRise]);
+    rightHorn.push([hornSpread * (0.16 + 0.84 * t), hornY - Math.sin(a) * hornRise]);
+  }
+  for (let i = 0; i < leftHorn.length - 1; i += 1) edges.push([leftHorn[i], leftHorn[i + 1]]);
+  for (let i = 0; i < rightHorn.length - 1; i += 1) edges.push([rightHorn[i], rightHorn[i + 1]]);
+
+  const stemTop = circleY + circleR;
+  const stemBottom = radius * 0.94;
+  const crossY = radius * 0.48;
+  edges.push([[0, stemTop], [0, stemBottom]]);
+  edges.push([[-radius * 0.42, crossY], [radius * 0.42, crossY]]);
+  return edges;
+}
+
+function elementalTriangle(centerX, centerY, radius, direction, barred = false) {
+  const rot = direction === 'up' ? -Math.PI / 2 : Math.PI / 2;
+  const verts = regularPolygon(3, radius, rot)
+    .map(([x, y]) => [x + centerX, y + centerY]);
+  const edges = [
+    [verts[0], verts[1]],
+    [verts[1], verts[2]],
+    [verts[2], verts[0]],
+  ];
+  if (barred) {
+    edges.push([
+      [centerX - radius * 0.55, centerY],
+      [centerX + radius * 0.55, centerY],
+    ]);
+  }
+  return edges;
+}
+
+function fourElementsEdges(radius) {
+  const anchors = [
+    [0, -radius * 0.62, 'up', false],
+    [radius * 0.62, 0, 'up', true],
+    [0, radius * 0.62, 'down', false],
+    [-radius * 0.62, 0, 'down', true],
+  ];
+  const edges = [];
+  for (const [x, y, direction, barred] of anchors) {
+    edges.push([[0, 0], [x * 0.68, y * 0.68]]);
+    edges.push(...elementalTriangle(x, y, radius * 0.23, direction, barred));
+  }
+  const ring = regularPolygon(40, radius * 0.95, Math.PI / 4);
+  for (let i = 0; i < ring.length; i += 1) edges.push([ring[i], ring[(i + 1) % ring.length]]);
   return edges;
 }
 
@@ -66,7 +160,7 @@ function icosaProjection(radius) {
   const top = [0, -radius];
   const bottom = [0, radius];
   const edges = [];
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 5; i += 1) {
     edges.push([top, ringTop[i]]);
     edges.push([ringTop[i], ringTop[(i + 1) % 5]]);
     edges.push([ringTop[i], ringBottom[i]]);
@@ -82,7 +176,7 @@ function metatronEdges(radius) {
   const ring = regularPolygon(6, radius * 0.72, -Math.PI / 2);
   const outer = regularPolygon(6, radius, -Math.PI / 2);
   const edges = [];
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 6; i += 1) {
     edges.push([center, ring[i]]);
     edges.push([ring[i], ring[(i + 1) % 6]]);
     edges.push([ring[i], outer[i]]);
@@ -185,6 +279,8 @@ export function targetForParticle(shape, index, count, cx, cy, baseRadius, theor
       x = Math.cos(a) * baseRadius * 0.75;
       y = -baseRadius * 0.8 + Math.sin(a) * baseRadius * 0.75;
     }
+  } else if (shape === 'cross-elements') {
+    [x, y] = edgePoint(crossElementsEdges(baseRadius), r);
   } else if (shape === 'cross-rotated' || shape === 'cross-quaternary') {
     const r2 = r * 2;
     if (r2 < 1) {
@@ -207,6 +303,8 @@ export function targetForParticle(shape, index, count, cx, cy, baseRadius, theor
         [baseRadius * 0.9, baseRadius * 0.9], [-baseRadius * 0.9, baseRadius * 0.9],
       ], (r - 0.5) / 0.5, true);
     }
+  } else if (shape === 'four-elements') {
+    [x, y] = edgePoint(fourElementsEdges(baseRadius), r);
   } else if (shape === 'aries-cross') {
     if (r < 0.38) {
       y = ((r / 0.38) - 0.5) * baseRadius * 2;
@@ -226,22 +324,28 @@ export function targetForParticle(shape, index, count, cx, cy, baseRadius, theor
   } else if (shape === 'torus') {
     const u = r * TAU * 7;
     const v = r * TAU * 3;
-    const ring = baseRadius * 0.72;
-    const tube = baseRadius * 0.22;
+    const ring = baseRadius * 0.79;
+    const tube = baseRadius * 0.235;
     x = (ring + tube * Math.cos(v)) * Math.cos(u);
-    y = (ring + tube * Math.cos(v)) * Math.sin(u) * 0.7 + Math.sin(v) * tube * 0.22;
+    y = (ring + tube * Math.cos(v)) * Math.sin(u) * 0.72 + Math.sin(v) * tube * 0.22;
   } else if (shape === 'sri-yantra') {
     [x, y] = edgePoint(sriYantraEdges(baseRadius), r);
   } else if (shape === 'pentagram') {
     [x, y] = pointOnPolyline(starPolyline(5, baseRadius, 2), r, true);
   } else if (shape === 'sacred-252') {
-    const spokes = 7;
-    const ray = Math.floor(r * spokes) % spokes;
-    const local = (r * spokes) % 1;
-    const a = (ray / spokes) * TAU - Math.PI / 2;
-    const d = baseRadius * (0.18 + 0.8 * local);
-    x = Math.cos(a) * d;
-    y = Math.sin(a) * d;
+    if (r < 0.56) {
+      const star = starPolyline(7, baseRadius * 0.92, 3);
+      [x, y] = pointOnPolyline(star, r / 0.56, true);
+    } else {
+      const localR = (r - 0.56) / 0.44;
+      const spokes = 7;
+      const ray = Math.floor(localR * spokes) % spokes;
+      const local = (localR * spokes) % 1;
+      const a = (ray / spokes) * TAU - Math.PI / 2;
+      const d = baseRadius * (0.18 + 0.78 * local);
+      x = Math.cos(a) * d;
+      y = Math.sin(a) * d;
+    }
   } else if (shape === 'monad-full') {
     if (r < 0.22) {
       const a = (r / 0.22) * TAU;
@@ -282,7 +386,7 @@ export function targetForParticle(shape, index, count, cx, cy, baseRadius, theor
     [x, y] = edgePoint(projectedCubeEdges(baseRadius * 0.72), r);
   } else if (shape === 'infinite-spiral') {
     const a = r * TAU * 6.5;
-    const d = (0.08 + r * 1.12) * baseRadius;
+    const d = (0.15 + r * 1.04) * baseRadius;
     x = Math.cos(a) * d;
     y = Math.sin(a) * d;
   } else {
