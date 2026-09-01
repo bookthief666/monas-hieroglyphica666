@@ -140,6 +140,14 @@ export default function App() {
       audioRef.current.volume = 0.5;
       audioRef.current.play().catch((e) => console.error('Audio playback restricted by browser policy:', e));
     }
+
+    const resumeId = Number(ritual.memory?.last?.theoremId);
+    const resumeTheorem = THEOREMS.find((theorem) => theorem.id === resumeId);
+    if (resumeTheorem) {
+      setItem(resumeTheorem);
+      setActive(resumeTheorem.id);
+      setViewMode('theorem');
+    }
     setHasStarted(true);
   };
 
