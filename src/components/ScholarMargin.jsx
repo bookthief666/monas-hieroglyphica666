@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
+import { rankConcordances } from '../lib/ritualContinuity.js';
 
 // A single comparative cross-reference: tradition + figure as a header that
-// expands to reveal the gloss connecting Dee's geometry to the wider tapestry
-// of esotericism (Shaiva, Neoplatonic, non-dualist, Bataillean...).
-function CrossRefCard({ xref, defaultOpen }) {
+// expands to reveal the gloss connecting Dee's geometry to the wider tapestry.
+// When the theorem has been worked, the operation may draw one concordance to
+// the front; the scholarship itself is never rewritten.
+function CrossRefCard({ xref, defaultOpen, resonant = false }) {
   const [open, setOpen] = useState(!!defaultOpen);
   return (
-    <div className="border-l-2 border-[var(--ink-gold)]/30 pl-3 mb-3 transition-all">
+    <div className={`border-l-2 pl-3 mb-3 transition-all ${resonant ? 'scholar-resonant-concordance border-[var(--ink-gold)]/55' : 'border-[var(--ink-gold)]/30'}`}>
       <button
         onClick={() => setOpen((o) => !o)}
         className="text-left w-full group"
       >
         <span className="block font-medieval text-[var(--ink-red)] text-[0.7rem] tracking-[0.2em] uppercase opacity-90">
-          {xref.tradition}
+          {xref.tradition}{resonant ? <span className="ml-2 text-[var(--ink-gold)] opacity-70">✶</span> : null}
         </span>
         <span className="block font-roman text-[var(--ink-gold)] text-sm italic group-hover:text-white transition-colors">
           {xref.figure}
@@ -28,10 +30,8 @@ function CrossRefCard({ xref, defaultOpen }) {
   );
 }
 
-// A glossary term as a glowing chip; hovering surfaces a fixed-position scrying
-// tooltip, tapping pins it (mobile-friendly).
 function GlossaryChip({ term, definition }) {
-  const [tip, setTip] = useState(null); // {x,y} | null
+  const [tip, setTip] = useState(null);
   const [pinned, setPinned] = useState(false);
 
   const show = (e) => setTip({ x: e.clientX, y: e.clientY });
@@ -65,9 +65,12 @@ function GlossaryChip({ term, definition }) {
   );
 }
 
-export default function ScholarMargin({ theorem, heading }) {
+export default function ScholarMargin({ theorem, heading, continuity = null }) {
   const glossary = theorem.glossary || {};
   const glossEntries = Object.entries(glossary);
+  const concordances = rankConcordances(theorem.crossReferences || [], continuity);
+  const hasResonance = Number(continuity?.count) > 0;
+
   return (
     <div>
       <div className="flex items-center gap-3 mb-5">
@@ -75,22 +78,26 @@ export default function ScholarMargin({ theorem, heading }) {
         <h4 className="font-medieval text-[var(--ink-red)] text-sm tracking-[0.2em] uppercase opacity-80">{heading}</h4>
       </div>
 
-      {/* The classical scholium, kept */}
       <p className="font-roman text-[var(--text-muted)] text-base italic leading-relaxed opacity-90 mb-6 drop-shadow-[0_0_8px_rgba(0,0,0,0.8)]">
         “{theorem.scholium}”
       </p>
 
-      {/* Comparative cross-references — the one pattern wearing many traditions */}
-      {theorem.crossReferences?.length > 0 && (
+      {concordances.length > 0 && (
         <div className="mb-6">
-          <h5 className="font-medieval text-[var(--ink-gold)]/80 text-[0.7rem] tracking-[0.25em] uppercase mb-3">Concordances</h5>
-          {theorem.crossReferences.map((x, i) => (
-            <CrossRefCard key={i} xref={x} defaultOpen={i === 0} />
+          <h5 className="font-medieval text-[var(--ink-gold)]/80 text-[0.7rem] tracking-[0.25em] uppercase mb-3">
+            Concordances{hasResonance ? <span className="ml-2 opacity-45">· resonantia</span> : null}
+          </h5>
+          {concordances.map((x, i) => (
+            <CrossRefCard
+              key={`${theorem.id}-${continuity?.mode || 'unworked'}-${x.figure}-${i}`}
+              xref={x}
+              defaultOpen={i === 0}
+              resonant={hasResonance && i === 0}
+            />
           ))}
         </div>
       )}
 
-      {/* Lexicon — tap a term to scry its meaning */}
       {glossEntries.length > 0 && (
         <div>
           <h5 className="font-medieval text-[var(--ink-gold)]/80 text-[0.7rem] tracking-[0.25em] uppercase mb-3">Lexicon</h5>
