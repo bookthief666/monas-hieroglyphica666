@@ -36,6 +36,24 @@ function readProfile() {
   };
 }
 
+function capabilitySignature(raw) {
+  const shortSide = Math.min(raw.width, raw.height);
+  const sizeBand = shortSide < 430 ? 'compact' : shortSide < 520 ? 'narrow' : 'wide';
+  const touchFirst = raw.coarsePointer || raw.hoverNone;
+  const lowCpu = raw.hardwareConcurrency <= 4;
+  const lowMemory = raw.deviceMemory <= 4;
+  const dprBand = Math.min(3, Math.round(raw.dpr * 2) / 2);
+  return [
+    sizeBand,
+    touchFirst ? 'touch' : 'fine',
+    raw.reducedMotion ? 'reduce' : 'motion',
+    raw.saveData ? 'save' : 'data',
+    lowCpu ? 'lowcpu' : 'cpu',
+    lowMemory ? 'lowmem' : 'mem',
+    dprBand,
+  ].join('|');
+}
+
 export default function useDeviceProfile() {
   const [raw, setRaw] = useState(readProfile);
 
@@ -45,7 +63,12 @@ export default function useDeviceProfile() {
     let raf = 0;
     const update = () => {
       cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => setRaw(readProfile()));
+      raf = requestAnimationFrame(() => {
+        const next = readProfile();
+        setRaw((previous) => (
+          capabilitySignature(previous) === capabilitySignature(next) ? previous : next
+        ));
+      });
     };
 
     const media = [
