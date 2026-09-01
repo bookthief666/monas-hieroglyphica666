@@ -63,6 +63,14 @@ export function singularityAnchors(shape, cx, cy, radius) {
         { x: cx - radius * 0.72, y: cy - radius * 0.8 },
         { x: cx + radius * 0.72, y: cy - radius * 0.8 },
       ]);
+    case 'cross-elements':
+      return center.concat([
+        { x: cx, y: cy - radius * 0.2 },
+        { x: cx, y: cy - radius * 0.72 },
+        { x: cx - radius * 0.42, y: cy + radius * 0.48 },
+        { x: cx + radius * 0.42, y: cy + radius * 0.48 },
+        { x: cx, y: cy + radius * 0.94 },
+      ]);
     case 'cross-rotated':
     case 'cross-quaternary':
       return center.concat(regularPoints(4, cx, cy, radius, Math.PI / 4));
@@ -70,6 +78,11 @@ export function singularityAnchors(shape, cx, cy, radius) {
       return center.concat(regularPoints(3, cx, cy, radius, -Math.PI / 2));
     case 'square-circle':
       return center.concat(regularPoints(4, cx, cy, radius * 0.9, Math.PI / 4));
+    case 'four-elements':
+      return center.concat(cardinals.map((point) => ({
+        x: cx + (point.x - cx) * 0.62,
+        y: cy + (point.y - cy) * 0.62,
+      })));
     case 'aries-cross':
       return center.concat([
         { x: cx, y: cy - radius * 0.72 },
@@ -81,13 +94,13 @@ export function singularityAnchors(shape, cx, cy, radius) {
     case 'icosahedron':
       return center.concat(regularPoints(5, cx, cy, radius * 0.72));
     case 'torus':
-      return center.concat(regularPoints(8, cx, cy, radius * 0.72));
+      return center.concat(regularPoints(8, cx, cy, radius * 0.79));
     case 'sri-yantra':
       return center.concat(regularPoints(6, cx, cy, radius * 0.76));
     case 'pentagram':
       return center.concat(regularPoints(5, cx, cy, radius));
     case 'sacred-252':
-      return center.concat(regularPoints(7, cx, cy, radius * 0.95));
+      return center.concat(regularPoints(7, cx, cy, radius * 0.92));
     case 'monad-full':
       return center.concat([
         { x: cx, y: cy - radius * 0.32 },
@@ -97,8 +110,8 @@ export function singularityAnchors(shape, cx, cy, radius) {
       ]);
     case 'hermetic-egg':
       return center.concat([
-        { x: cx, y: cy - radius * 1.12 },
-        { x: cx, y: cy + radius * 1.12 },
+        { x: cx, y: cy - radius * 1.08 },
+        { x: cx, y: cy + radius * 1.08 },
       ]);
     case 'sephiroth': {
       const nodes = [
@@ -118,10 +131,8 @@ export function singularityAnchors(shape, cx, cy, radius) {
         ...regularPoints(4, cx + radius * 0.18, cy - radius * 0.18, radius * 0.54, Math.PI / 4),
       ]);
     case 'infinite-spiral':
-      return center.concat([
-        { x: cx + radius * 1.35, y: cy },
-        { x: cx - radius * 1.08, y: cy },
-      ]);
+      return Array.from({ length: 9 }, (_, i) =>
+        targetForParticle('infinite-spiral', i + 1, 10, cx, cy, radius, 24));
     default:
       return center;
   }
@@ -133,7 +144,8 @@ export function roleTarget(role, baseTarget, index, theoremId, radius, anchors) 
   }
   if (role === 'aether') {
     const angle = hash01(index, theoremId + 211) * TAU;
-    const spread = radius * (0.025 + hash01(index, theoremId + 313) * 0.065);
+    const spreadGain = theoremId === 24 ? 0.72 : theoremId === 13 ? 1.08 : 1;
+    const spread = radius * (0.025 + hash01(index, theoremId + 313) * 0.065) * spreadGain;
     return {
       x: baseTarget.x + Math.cos(angle) * spread,
       y: baseTarget.y + Math.sin(angle) * spread,
