@@ -294,6 +294,11 @@ export default function App() {
                     className={`text-lg md:text-2xl leading-[1.7] md:leading-[1.8] text-justify drop-shadow-[0_0_8px_rgba(0,0,0,0.8)] font-bold min-h-[150px] w-full ${viewMode === 'exegesis' && ritual.memoryCount > 0 ? 'ritual-register-received' : ''}`}
                     style={{ '--ritual-register-charge': viewMode === 'exegesis' ? continuity.registerResonance : 0 }}
                   >
+                    <p className="font-medieval text-[0.62rem] md:text-[0.7rem] tracking-[0.2em] uppercase text-[var(--ink-gold)] opacity-65 mb-3 text-left">
+                      {viewMode === 'exegesis'
+                        ? 'Interpretive exegesis · project commentary'
+                        : 'English reading · project text'}
+                    </p>
                     <KineticText
                       text={viewMode === 'exegesis' ? item.exegesis : item.text}
                       variant={viewMode === 'exegesis' ? 'exegesis' : 'theorem'}
