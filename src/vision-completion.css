@@ -1,0 +1,297 @@
+/* Living Grimoire IX — recovered codex language, kept compositor-cheap.
+   Motion is intentionally transform/opacity-led; no animated filters wrap the
+   Black Mirror or manuscript subtree. */
+
+.source-witness {
+  position: relative;
+  padding: 1.1rem 1.15rem 1rem;
+  border-top: 1px solid rgba(255, 223, 115, 0.2);
+  border-bottom: 1px solid rgba(255, 223, 115, 0.12);
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 223, 115, 0.035), transparent),
+    rgba(0, 0, 0, 0.12);
+}
+
+.source-witness-rule {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  top: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 223, 115, 0.55), transparent);
+}
+
+.source-witness-latin {
+  text-shadow: 0 0 12px rgba(255, 223, 115, 0.11);
+}
+
+.source-witness-details > summary {
+  list-style: none;
+  opacity: 0.68;
+  transition: opacity 220ms ease;
+}
+
+.source-witness-details > summary::-webkit-details-marker { display: none; }
+.source-witness-details > summary::before { content: '◇'; margin-right: 0.55rem; color: var(--ink-gold); opacity: 0.65; }
+.source-witness-details[open] > summary::before { content: '◆'; }
+.source-witness-details > summary:hover { opacity: 1; }
+.source-witness-meta { animation: witness-reveal 360ms ease-out both; }
+.source-witness-link { opacity: 0.7; transition: opacity 180ms ease, transform 180ms ease; display: inline-block; }
+.source-witness-link:hover { opacity: 1; transform: translateY(-1px); }
+
+.reliquary-section {
+  position: relative;
+}
+
+.reliquary-illumination {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  height: clamp(250px, 56vw, 430px);
+  overflow: hidden;
+  border-radius: 1.4rem;
+  border: 1px solid rgba(255, 223, 115, 0.2);
+  background:
+    radial-gradient(circle at 50% 46%, rgba(116, 52, 15, 0.2), transparent 36%),
+    radial-gradient(circle at 50% 62%, rgba(28, 5, 3, 0.5), transparent 54%),
+    linear-gradient(180deg, rgba(12, 8, 5, 0.84), rgba(2, 2, 2, 0.96));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 245, 210, 0.025),
+    inset 0 0 62px rgba(0, 0, 0, 0.72),
+    0 16px 50px rgba(0, 0, 0, 0.25);
+}
+
+.reliquary-illumination.is-recovered-relic {
+  border-color: rgba(255, 223, 115, 0.34);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 223, 115, 0.045),
+    inset 0 0 70px rgba(0, 0, 0, 0.74),
+    0 0 34px rgba(212, 175, 55, 0.075);
+}
+
+.reliquary-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.24;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 223, 115, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 223, 115, 0.05) 1px, transparent 1px),
+    radial-gradient(circle at center, transparent 0 28%, rgba(255, 223, 115, 0.07) 28.2% 28.5%, transparent 28.7% 43%, rgba(255, 223, 115, 0.045) 43.2% 43.5%, transparent 43.7%);
+  background-size: 30px 30px, 30px 30px, 100% 100%;
+  mask-image: radial-gradient(circle at center, #000 0%, rgba(0,0,0,0.72) 58%, transparent 84%);
+  -webkit-mask-image: radial-gradient(circle at center, #000 0%, rgba(0,0,0,0.72) 58%, transparent 84%);
+}
+
+.reliquary-aura {
+  position: absolute;
+  inset: -25%;
+  pointer-events: none;
+  opacity: 0.4;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 204, 112, 0.12), transparent 31%),
+    conic-gradient(from 20deg at 50% 50%, transparent 0 18%, rgba(255, 223, 115, 0.07) 19% 20%, transparent 21% 56%, rgba(255, 80, 48, 0.06) 57% 58%, transparent 59%);
+  animation: reliquary-aura-turn 34s linear infinite;
+}
+
+.reliquary-dust-field {
+  position: absolute;
+  inset: -12%;
+  pointer-events: none;
+  opacity: 0;
+  background-image:
+    radial-gradient(circle at 12% 22%, rgba(255,223,115,0.48) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 72% 18%, rgba(255,195,94,0.34) 0 1px, transparent 1.4px),
+    radial-gradient(circle at 31% 71%, rgba(255,112,67,0.25) 0 1px, transparent 1.3px),
+    radial-gradient(circle at 82% 66%, rgba(255,234,184,0.28) 0 1px, transparent 1.3px);
+  background-size: 47px 53px, 71px 67px, 89px 83px, 109px 97px;
+  animation: reliquary-dust-condense 2.5s cubic-bezier(0.22, 0.7, 0.2, 1) both;
+}
+
+.reliquary-axis {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255,223,115,0.2), transparent);
+  opacity: 0;
+  animation: reliquary-axis-reveal 1.6s 520ms ease-out both;
+}
+.reliquary-axis-horizontal { left: 13%; right: 13%; top: 50%; height: 1px; }
+.reliquary-axis-vertical { top: 13%; bottom: 13%; left: 50%; width: 1px; transform-origin: center; transform: rotate(90deg); }
+
+.reliquary-center-point {
+  position: absolute;
+  z-index: 8;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: var(--ink-gold);
+  box-shadow: 0 0 12px rgba(255,223,115,0.46);
+  opacity: 0;
+  animation: reliquary-point-birth 900ms 240ms ease-out both;
+}
+
+.reliquary-echo,
+.reliquary-operative {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: 50%;
+  width: min(62%, 300px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.reliquary-echo {
+  opacity: 0;
+  animation: reliquary-echo-emerge 2.1s 260ms cubic-bezier(0.2, 0.72, 0.2, 1) both;
+}
+
+.reliquary-operative {
+  z-index: 6;
+  opacity: 0;
+  animation: reliquary-operative-etch 2.4s 1.05s cubic-bezier(0.18, 0.78, 0.2, 1) both;
+}
+
+.reliquary-illumination .sigil-flat-group,
+.reliquary-illumination .sigil-3d-group {
+  transform-origin: 50px 50px;
+  animation-duration: 38s;
+}
+
+.reliquary-inscription {
+  position: absolute;
+  z-index: 10;
+  left: 1rem;
+  right: 1rem;
+  bottom: 0.72rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  color: rgba(255, 223, 115, 0.58);
+  font-family: 'MedievalSharp', cursive;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: reliquary-inscription-reveal 700ms 1.75s ease-out both;
+}
+.reliquary-separator { color: var(--ink-red); opacity: 0.7; }
+.reliquary-caption { opacity: 0.62; line-height: 1.55; }
+.reliquary-replay { opacity: 0.64; transition: opacity 180ms ease, transform 180ms ease, border-color 180ms ease; }
+.reliquary-replay:hover { opacity: 1; transform: rotate(-1deg) translateY(-1px); border-color: rgba(255,223,115,0.55); }
+
+.living-marginalia {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.marginalia-rune {
+  --marginalia-scale: 1;
+  position: absolute;
+  color: rgba(255, 223, 115, 0.16);
+  font-family: 'IM Fell English', serif;
+  font-size: 0.86rem;
+  opacity: 0.08;
+  animation: marginalia-drift 26s ease-in-out infinite;
+  transform: scale(var(--marginalia-scale));
+}
+
+.living-marginalia-albedo .marginalia-rune { color: rgba(225, 235, 255, 0.17); }
+.living-marginalia-rubedo .marginalia-rune { color: rgba(255, 132, 86, 0.17); }
+
+@keyframes witness-reveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes reliquary-aura-turn {
+  from { transform: rotate(0deg) scale(1.02); }
+  to { transform: rotate(360deg) scale(1.02); }
+}
+
+@keyframes reliquary-dust-condense {
+  0% { opacity: 0; transform: translate3d(6%, -4%, 0) scale(1.18) rotate(-2deg); }
+  24% { opacity: 0.55; }
+  68% { opacity: 0.26; transform: translate3d(0, 0, 0) scale(0.94) rotate(0deg); }
+  100% { opacity: 0.08; transform: translate3d(0, 0, 0) scale(0.9); }
+}
+
+@keyframes reliquary-axis-reveal {
+  from { opacity: 0; transform: scaleX(0.08); }
+  to { opacity: 0.38; transform: scaleX(1); }
+}
+
+@keyframes reliquary-point-birth {
+  0% { opacity: 0; transform: scale(0.1); }
+  55% { opacity: 1; transform: scale(1.55); }
+  100% { opacity: 0.78; transform: scale(1); }
+}
+
+@keyframes reliquary-echo-emerge {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(1.2) rotate(-5deg); }
+  38% { opacity: 0.68; }
+  100% { opacity: 0.36; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+}
+
+@keyframes reliquary-operative-etch {
+  0%, 18% { opacity: 0; transform: translate(-50%, -50%) scale(0.74) rotate(4deg); }
+  56% { opacity: 0.78; }
+  100% { opacity: 0.66; transform: translate(-50%, -50%) scale(0.94) rotate(0deg); }
+}
+
+@keyframes reliquary-inscription-reveal {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 0.72; transform: translateY(0); }
+}
+
+@keyframes marginalia-drift {
+  0%, 100% { opacity: 0.04; transform: translate3d(0, 0, 0) rotate(0deg) scale(var(--marginalia-scale)); }
+  28% { opacity: 0.13; }
+  52% { opacity: 0.09; transform: translate3d(8px, -14px, 0) rotate(3deg) scale(var(--marginalia-scale)); }
+  76% { opacity: 0.06; transform: translate3d(-9px, 8px, 0) rotate(-3deg) scale(var(--marginalia-scale)); }
+}
+
+@media (pointer: coarse), (hover: none) {
+  .reliquary-aura { animation-duration: 48s; opacity: 0.28; }
+  .reliquary-dust-field { opacity: 0.08; }
+  .reliquary-illumination .sigil-flat-group,
+  .reliquary-illumination .sigil-3d-group { animation-duration: 52s; }
+  .marginalia-rune:nth-child(n+7) { display: none; }
+  .marginalia-rune { animation-duration: 34s !important; opacity: 0.06; }
+  .source-witness { background: rgba(0,0,0,0.1); }
+}
+
+@media (max-width: 520px) {
+  .reliquary-illumination { height: 270px; border-radius: 1rem; }
+  .reliquary-echo, .reliquary-operative { width: 68%; }
+  .reliquary-inscription { font-size: 0.54rem; gap: 0.45rem; letter-spacing: 0.1em; }
+  .source-witness { padding-inline: 0.8rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reliquary-aura,
+  .reliquary-dust-field,
+  .reliquary-axis,
+  .reliquary-center-point,
+  .reliquary-echo,
+  .reliquary-operative,
+  .reliquary-inscription,
+  .marginalia-rune,
+  .source-witness-meta {
+    animation: none !important;
+  }
+  .reliquary-echo { opacity: 0.3; }
+  .reliquary-operative { opacity: 0.62; transform: translate(-50%, -50%) scale(0.94); }
+  .reliquary-center-point { opacity: 0.72; }
+  .reliquary-inscription { opacity: 0.65; }
+}
