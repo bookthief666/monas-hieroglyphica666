@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "verify:mirror": "node scripts/verify-living-mirror.mjs",
-    "check": "npm run verify:mirror && npm run build"
+    "verify:renderer": "node scripts/verify-render-capability.mjs",
+    "check": "npm run verify:mirror && npm run verify:renderer && npm run build"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.0",
