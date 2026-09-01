@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, Suspense } from 'react';
+import React, { useEffect, useRef, useMemo, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Line, Sphere, Torus, MeshTransmissionMaterial } from '@react-three/drei';
 import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
@@ -22,17 +22,35 @@ function MonadBody({ palette, glow, spec }) {
   useFrame((state, dt) => {
     if (!group.current) return;
     const rate = spec.motion.fieldRate;
+    const elapsed = state.clock.elapsedTime;
     group.current.rotation.y += dt * (0.105 + rate * 0.045);
 
     const px = state.pointer.x;
     const py = state.pointer.y;
-    const gaze = spec.field === 'lunar' ? 0.58 : spec.field === 'hypercube' ? 0.34 : 0.45;
-    group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, py * gaze, 0.05);
-    group.current.rotation.z = THREE.MathUtils.lerp(group.current.rotation.z, -px * (0.18 + rate * 0.05), 0.05);
+    const gaze = spec.field === 'lunar' ? 0.58 : spec.field === 'hypercube' ? 0.38 : 0.45;
+    let targetX = py * gaze;
+    let targetZ = -px * (0.18 + rate * 0.05);
+    let targetScale = 1;
 
     if (spec.field === 'toroidal' || spec.field === 'spiral') {
       group.current.rotation.y += dt * 0.04 * rate;
+      targetZ += Math.sin(elapsed * rate * 0.35) * 0.045;
+    } else if (spec.field === 'hypercube') {
+      targetX += Math.sin(elapsed * 0.48) * 0.11;
+      group.current.rotation.y += dt * 0.055;
+      targetScale = 1 + Math.sin(elapsed * 0.7) * 0.018;
+    } else if (spec.field === 'solar' || spec.field === 'radiant' || spec.field === 'radial') {
+      targetScale = 1 + Math.sin(elapsed * rate * 1.25) * (0.012 + spec.optics.pulse * 0.018);
+    } else if (spec.field === 'axial' || spec.field === 'lattice') {
+      targetZ *= 0.6;
+    } else if (spec.field === 'lunar') {
+      targetZ += Math.sin(elapsed * 0.4) * 0.035;
     }
+
+    group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, targetX, 0.05);
+    group.current.rotation.z = THREE.MathUtils.lerp(group.current.rotation.z, targetZ, 0.05);
+    const nextScale = THREE.MathUtils.lerp(group.current.scale.x, targetScale, 0.045);
+    group.current.scale.setScalar(nextScale);
   });
 
   const lunaCurve = useMemo(() => {
@@ -67,7 +85,7 @@ function MonadBody({ palette, glow, spec }) {
   );
 }
 
-function Aether({ color, count = 120, rate = 1 }) {
+function Aether({ color, count = 120, rate = 1, depth = 0.5 }) {
   const ref = useRef();
   const positions = useMemo(() => {
     const arr = new Float32Array(count * 3);
@@ -91,7 +109,14 @@ function Aether({ color, count = 120, rate = 1 }) {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
       </bufferGeometry>
-      <pointsMaterial size={0.02} color={color} transparent opacity={0.7} sizeAttenuation depthWrite={false} />
+      <pointsMaterial
+        size={0.018 + depth * 0.006}
+        color={color}
+        transparent
+        opacity={0.5 + depth * 0.25}
+        sizeAttenuation
+        depthWrite={false}
+      />
     </points>
   );
 }
@@ -103,6 +128,13 @@ export default function MonadOrb({ theoremId = 1, stage = 'nigredo', onReady }) 
   const c0 = palette[0] || '#ffdf73';
   const bloom = glow * (0.86 + spec.optics.pulse * 0.32);
   const aberration = 0.00045 + spec.optics.chroma * 0.00125;
+  const aetherCount = spec.field === 'radiant' ? 150 : spec.field === 'lattice' ? 96 : 120;
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--manifestation-holo-seconds', `${spec.motion.hologramSeconds}s`);
+    document.documentElement.style.setProperty('--manifestation-field-rate', String(spec.motion.fieldRate));
+    return () => {};
+  }, [spec.motion.fieldRate, spec.motion.hologramSeconds]);
 
   return (
     <Canvas
@@ -127,21 +159,21 @@ export default function MonadOrb({ theoremId = 1, stage = 'nigredo', onReady }) 
         >
           <Sphere args={[1.7, 64, 64]}>
             <MeshTransmissionMaterial
-              thickness={0.7}
-              roughness={0.06}
+              thickness={0.62 + spec.optics.depth * 0.18}
+              roughness={0.045 + (1 - spec.optics.depth) * 0.04}
               transmission={1}
-              ior={1.45}
+              ior={1.42 + spec.optics.depth * 0.08}
               chromaticAberration={0.22 + spec.optics.chroma * 0.5}
-              anisotropy={0.2}
+              anisotropy={0.16 + spec.optics.depth * 0.12}
               distortion={0.14 + spec.optics.pulse * 0.12}
               distortionScale={0.3}
               temporalDistortion={0.08 + spec.motion.fieldRate * 0.02}
               backside
-              backsideThickness={0.4}
+              backsideThickness={0.35 + spec.optics.depth * 0.12}
               color="#120a08"
             />
           </Sphere>
-          <Aether color={c0} rate={spec.motion.fieldRate} />
+          <Aether color={c0} count={aetherCount} rate={spec.motion.fieldRate} depth={spec.optics.depth} />
           <MonadBody palette={palette} glow={glow} spec={spec} />
         </Float>
 
