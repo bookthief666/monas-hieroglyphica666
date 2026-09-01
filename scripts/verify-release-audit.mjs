@@ -1,10 +1,20 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { THEOREMS } from '../src/data/theorems.js';
 import { getSourceWitness } from '../src/lib/sourceWitness.js';
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const pinnedRawGithub = /^https:\/\/raw\.githubusercontent\.com\/[^/]+\/[^/]+\/[0-9a-f]{40}\//i;
+
+function sourceFiles(dirUrl) {
+  const files = [];
+  for (const entry of readdirSync(dirUrl, { withFileTypes: true })) {
+    const url = new URL(entry.name + (entry.isDirectory() ? '/' : ''), dirUrl);
+    if (entry.isDirectory()) files.push(...sourceFiles(url));
+    else if (/\.(?:js|jsx|css)$/.test(entry.name)) files.push(url);
+  }
+  return files;
+}
 
 const vite = read('../vite.config.js');
 const index = read('../index.html');
@@ -25,6 +35,18 @@ assert.equal(new Set(backgrounds).size, 24, 'Every theorem should retain its own
 backgrounds.forEach((url, index) => {
   assert.match(url, pinnedRawGithub, `Theorem ${index + 1} background must use an immutable GitHub commit URL`);
 });
+
+const rawRuntimeUrls = [];
+for (const file of sourceFiles(new URL('../src/', import.meta.url))) {
+  const text = readFileSync(file, 'utf8');
+  for (const match of text.matchAll(/https:\/\/raw\.githubusercontent\.com\/[^\s'"`)]+/g)) {
+    rawRuntimeUrls.push({ file: file.pathname, url: match[0] });
+  }
+}
+assert.ok(rawRuntimeUrls.length >= 26, 'Release should expose the expected theorem, title, and audio runtime assets');
+for (const asset of rawRuntimeUrls) {
+  assert.match(asset.url, pinnedRawGithub, `Mutable raw-GitHub runtime asset in ${asset.file}: ${asset.url}`);
+}
 
 const audioMatch = audio.match(/const AUDIO_SRC\s*=\s*\n?\s*['"]([^'"]+)['"]/);
 assert.ok(audioMatch, 'Ambient audio source must remain explicit and auditable');
@@ -54,4 +76,4 @@ assert.doesNotMatch(deployWorkflow, /claude\/ecstatic-euler/, 'Obsolete developm
 assert.match(deployWorkflow, /run:\s*npm run release:check/, 'Deployment must execute the strict release gate before upload');
 assert.match(deployWorkflow, /needs:\s*build/, 'Pages deploy must depend on the verified build job');
 
-console.log('Production release audit gate PASS: Pages base/metadata, 24 immutable backgrounds, pinned audio, HTTPS witnesses, guarded persistence, strict main-only verified deployment.');
+console.log(`Production release audit gate PASS: Pages base/metadata, 24 theorem witnesses, ${rawRuntimeUrls.length} immutable raw-GitHub runtime assets, HTTPS source links, guarded persistence, strict main-only verified deployment.`);
