@@ -3,9 +3,6 @@ import RitualProjection from './RitualProjection.jsx';
 import { getProjectionSpec } from '../lib/projectionSpec.js';
 import useMirrorRitual from '../lib/useMirrorRitual.js';
 
-// The Theurgic Application — the move from reading to operating. Each theorem's
-// geometric truth is translated into three registers the modern operator can act
-// in: the framing of thought, the architecture of systems, and embodied ritual.
 const FACETS = [
   { key: 'cognitive', glyph: '☿', label: 'Cognitive Framing', sub: 'How to think in the shape of this truth' },
   { key: 'architecture', glyph: '⎔', label: 'Architecture', sub: 'How systems take this form' },
@@ -15,11 +12,14 @@ const FACETS = [
 export default function ApplicationPanel({ theorem }) {
   const app = theorem.application || {};
   const projection = getProjectionSpec(theorem.id);
-  const { lastOperation, memoryCount, strongestCharge } = useMirrorRitual(theorem.id);
-  const charge = Math.max(Number(lastOperation?.charge) || 0, Math.min(0.5, strongestCharge * 0.4));
+  const { lastOperation, memoryCount, continuity } = useMirrorRitual(theorem.id);
+  const charge = continuity.imprint;
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
+    <div
+      className="w-full max-w-3xl mx-auto ritual-register-received"
+      style={{ '--ritual-register-charge': continuity.registerResonance }}
+    >
       <p className="font-medieval text-center text-[var(--ink-red)] text-sm tracking-[0.3em] uppercase mb-8 opacity-80">
         Operatio — to operate the theorem, not merely to read it
       </p>
@@ -38,7 +38,10 @@ export default function ApplicationPanel({ theorem }) {
               Vestigium Operis
             </span>
             <p className="font-roman italic text-[var(--text-muted)] text-sm md:text-base opacity-85 leading-relaxed">
-              The shew-stone retains a residue of this theorem{lastOperation?.mode ? ` — ${lastOperation.mode}` : ''}; the operation below begins from that remembered tension.
+              The shew-stone remembers {continuity.label}{lastOperation?.mode ? ` — ${lastOperation.mode}` : ''}.
+            </p>
+            <p className="font-roman italic text-sm md:text-base leading-relaxed mt-1 ritual-residue-line">
+              {continuity.operatioText}
             </p>
           </div>
         </div>
