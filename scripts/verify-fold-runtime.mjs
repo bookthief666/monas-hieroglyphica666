@@ -22,6 +22,10 @@ assert.match(css, /contain:\s*none\s*!important/, 'Fold-safe mirror must not use
 assert.match(css, /position:\s*relative\s*!important/, 'Fold-safe canvas must stay in ordinary DOM flow');
 assert.doesNotMatch(css, /translateZ\(/, 'Fold-safe mirror must not GPU-promote the canvas with translateZ');
 assert.doesNotMatch(css, /position:\s*absolute\s*!important;[\s\S]{0,180}living-black-mirror > canvas/, 'Fold-safe canvas must not be forced into an absolute compositor layer');
+assert.match(css, /background-color:\s*#020203\s*!important/, 'Fold-safe canvas must paint an opaque black CSS backing');
+assert.match(css, /transition:\s*none\s*!important/, 'Fold-safe canvas must not participate in broad stage opacity transitions');
+assert.match(css, /will-change:\s*auto\s*!important/, 'Fold-safe canvas must not request compositor promotion');
+assert.doesNotMatch(css, /living-black-mirror > canvas[\s\S]{0,260}background:\s*transparent\s*!important/, 'Fold-safe canvas must never be transparent');
 assert.match(css, /mirror-depth-volume,[\s\S]*mirror-inner-rim[\s\S]*display:\s*none\s*!important/, 'Fold-safe mode must suppress auxiliary optical layers');
 
-console.log('Fold runtime verifier PASS: force2d is live, inactive apparitions unmount, and the Fold canvas stays on a non-promoted compositor path.');
+console.log('Fold runtime verifier PASS: force2d is live, inactive apparitions unmount, and the Fold canvas stays opaque on a non-promoted compositor path.');
