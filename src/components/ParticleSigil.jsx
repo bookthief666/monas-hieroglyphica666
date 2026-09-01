@@ -1,15 +1,16 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { getPalette } from '../data/palettes.js';
 
-// The 2D scrying mirror: ~450 particles that flock into the theorem's shape and
-// scatter from the cursor like iron filings around a lodestone. Retained as the
-// lightweight, always-available illustration (and as the WebGL fallback for the
-// flagship MonadOrb on weak devices / reduced-motion).
+const IS_MOBILE = typeof navigator !== 'undefined' &&
+  (/Mobi|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 0 && window.innerWidth < 1024));
+const PARTICLE_COUNT = IS_MOBILE ? 300 : 450;
+
 export default function ParticleSigil({ currentShape, theoremId }) {
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const particlesRef = useRef([]);
   const mouseRef = useRef({ x: -1000, y: -1000 });
+  const sizeRef = useRef({ w: 0, h: 0 });
 
   const handleMouseMove = useCallback((e) => {
     if (!canvasRef.current) return;
@@ -23,17 +24,21 @@ export default function ParticleSigil({ currentShape, theoremId }) {
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    const rect = canvas.parentElement.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    canvas.style.width = `${rect.width}px`;
-    canvas.style.height = `${rect.height}px`;
+    const container = canvas.parentElement;
+    const rect = container.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, IS_MOBILE ? 2 : 3);
+    const w = rect.width;
+    const h = rect.height;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
     ctx.scale(dpr, dpr);
+    sizeRef.current = { w, h };
 
-    const cx = rect.width / 2;
-    const cy = rect.height / 2;
-    const baseRadius = rect.width < 300 ? 70 : 90;
+    const cx = w / 2;
+    const cy = h / 2;
+    const baseRadius = w < 300 ? w * 0.26 : 90;
 
     class Particle {
       constructor(i) {
@@ -44,7 +49,7 @@ export default function ParticleSigil({ currentShape, theoremId }) {
         this.ty = cy;
         this.vx = 0;
         this.vy = 0;
-        this.size = Math.random() * 0.8 + 0.3;
+        this.size = Math.random() * (IS_MOBILE ? 1.0 : 0.8) + 0.4;
         this.baseColor = '#ffffff';
         this.speed = Math.random() * 0.05 + 0.02;
       }
@@ -66,18 +71,16 @@ export default function ParticleSigil({ currentShape, theoremId }) {
       }
       draw(c) {
         c.fillStyle = this.baseColor;
-        c.shadowBlur = 6;
-        c.shadowColor = this.baseColor;
+        if (!IS_MOBILE) { c.shadowBlur = 6; c.shadowColor = this.baseColor; }
         c.beginPath();
         c.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         c.fill();
-        c.shadowBlur = 0;
+        if (!IS_MOBILE) c.shadowBlur = 0;
       }
     }
 
-    if (particlesRef.current.length === 0) {
-      for (let i = 0; i < 450; i++) particlesRef.current.push(new Particle(i));
-    }
+    particlesRef.current.length = 0;
+    for (let i = 0; i < PARTICLE_COUNT; i++) particlesRef.current.push(new Particle(i));
 
     const currentPalette = getPalette(theoremId);
     particlesRef.current.forEach((p, i) => {
@@ -92,7 +95,7 @@ export default function ParticleSigil({ currentShape, theoremId }) {
           else { p.tx = cx; p.ty = cy + (((r - 0.6) / 0.4) - 0.5) * (baseRadius * 2.5); }
         } else if (s === 'point-line-circle') {
           if (r < 0.1) { const a = Math.random() * Math.PI * 2; const d = Math.random() * 3; p.tx = cx + Math.cos(a) * d; p.ty = cy + Math.sin(a) * d; }
-          else if (r < 0.5) { const h = ((r - 0.1) / 0.4); p.tx = cx; p.ty = cy - (h * baseRadius * 1.5); }
+          else if (r < 0.5) { const h2 = ((r - 0.1) / 0.4); p.tx = cx; p.ty = cy - (h2 * baseRadius * 1.5); }
           else { const a = ((r - 0.5) / 0.5) * Math.PI * 2; p.tx = cx + Math.cos(a) * (baseRadius * 0.9); p.ty = cy + Math.sin(a) * (baseRadius * 0.9); }
         } else if (s === 'sun-earth') {
           const a = r * Math.PI * 2; const d = r < 0.15 ? Math.random() * 4 : baseRadius + (Math.random() * 4 - 2); p.tx = cx + Math.cos(a) * d; p.ty = cy + Math.sin(a) * d;
@@ -160,16 +163,18 @@ export default function ParticleSigil({ currentShape, theoremId }) {
     setTargets(currentShape);
 
     let frame = 0;
+    const lineStep = IS_MOBILE ? 8 : 5;
+    const lineStepJ = IS_MOBILE ? 10 : 6;
     const animate = () => {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-      ctx.fillRect(0, 0, rect.width, rect.height);
+      ctx.fillRect(0, 0, w, h);
 
       const p = particlesRef.current;
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
       ctx.lineWidth = 0.2;
       ctx.beginPath();
-      for (let i = 0; i < p.length; i += 5) {
-        for (let j = i + 1; j < p.length; j += 6) {
+      for (let i = 0; i < p.length; i += lineStep) {
+        for (let j = i + 1; j < p.length; j += lineStepJ) {
           const dx = p[i].x - p[j].x;
           const dy = p[i].y - p[j].y;
           if (dx * dx + dy * dy < 1000) { ctx.moveTo(p[i].x, p[i].y); ctx.lineTo(p[j].x, p[j].y); }

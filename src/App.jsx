@@ -18,6 +18,12 @@ const MonadOrb = lazy(() => import('./components/MonadOrb.jsx'));
 const reducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+const isMobile = () => {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    (navigator.maxTouchPoints > 0 && window.innerWidth < 1024);
+};
+
 const hasWebGL = () => {
   if (typeof window === 'undefined') return false;
   try {
@@ -28,24 +34,38 @@ const hasWebGL = () => {
   }
 };
 
-// If the WebGL stack throws (driver loss, etc.) we quietly fall back to the 2D mirror.
 class OrbBoundary extends Component {
   constructor(p) { super(p); this.state = { failed: false }; }
   static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch() { this.setState({ failed: true }); }
   render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 
-// The hero scrying vessel: the 3D Monad when the device can bear it, the 2D
-// particle mirror otherwise (weak GPU / reduced-motion / WebGL failure).
 function HeroSigil({ theorem, stage }) {
-  const [allow3D] = useState(() => hasWebGL() && !reducedMotion());
+  const [allow3D, setAllow3D] = useState(() => hasWebGL() && !reducedMotion() && !isMobile());
+  const [orbMounted, setOrbMounted] = useState(false);
+  const containerRef = useRef(null);
   const fallback = <ParticleSigil currentShape={theorem.shape} theoremId={theorem.id} />;
+
+  useEffect(() => {
+    if (!allow3D || !orbMounted) return;
+    const timer = setTimeout(() => {
+      try {
+        const canvas = containerRef.current?.querySelector('canvas');
+        if (!canvas) { setAllow3D(false); return; }
+        const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+        if (!gl || gl.isContextLost()) setAllow3D(false);
+      } catch { setAllow3D(false); }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [allow3D, orbMounted]);
+
   if (!allow3D) return fallback;
   return (
-    <div className="scrying-mirror" style={{ cursor: 'grab' }}>
+    <div className="scrying-mirror" style={{ cursor: 'grab' }} ref={containerRef}>
       <OrbBoundary fallback={fallback}>
         <Suspense fallback={fallback}>
-          <MonadOrb theoremId={theorem.id} stage={stage} />
+          <MonadOrb theoremId={theorem.id} stage={stage} onReady={() => setOrbMounted(true)} />
         </Suspense>
       </OrbBoundary>
     </div>

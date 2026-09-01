@@ -122,7 +122,7 @@ function Aether({ color, count = 120 }) {
   );
 }
 
-export default function MonadOrb({ theoremId = 1, stage = 'nigredo' }) {
+export default function MonadOrb({ theoremId = 1, stage = 'nigredo', onReady }) {
   const palette = getPalette(theoremId);
   const glow = { nigredo: 0.7, albedo: 1.2, rubedo: 2.0 }[stage] ?? 1;
   const c0 = palette[0] || '#ffdf73';
@@ -133,6 +133,10 @@ export default function MonadOrb({ theoremId = 1, stage = 'nigredo' }) {
       dpr={[1, 2]}
       gl={{ antialias: true, alpha: true }}
       style={{ width: '100%', height: '100%' }}
+      onCreated={({ gl }) => {
+        gl.domElement.addEventListener('webglcontextlost', () => { throw new Error('WebGL context lost'); });
+        if (onReady) onReady();
+      }}
     >
       <ambientLight intensity={0.25} />
       <pointLight position={[0, 0, 3]} intensity={glow * 2} color={c0} />

@@ -178,11 +178,14 @@ body {
 .glow-red { color: var(--ink-red); text-shadow: 0 0 20px rgba(255, 68, 68, 0.9), 0 0 35px rgba(139, 0, 0, 0.5); }
 
 .scrying-mirror {
-  position: relative; border-radius: 50%; width: 280px; height: 280px;
+  position: relative; border-radius: 50%; width: min(70vw, 280px); height: min(70vw, 280px);
   box-shadow: inset 0 0 60px rgba(0,0,0,0.9), 0 0 40px rgba(212,175,55,0.25);
   background: radial-gradient(circle at center, rgba(10,5,2,0.85) 0%, rgba(0,0,0,1) 100%);
   border: 2px solid rgba(212, 175, 55, 0.4); margin: 0 auto;
   overflow: hidden; cursor: none;
+}
+@media (min-width: 768px) {
+  .scrying-mirror { width: 320px; height: 320px; }
 }
 
 .soyga-text {
