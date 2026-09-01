@@ -1,5 +1,14 @@
 const MOBILE_UA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
 
+function queryForces2D() {
+  if (typeof window === 'undefined' || !window.location) return false;
+  try {
+    return new URLSearchParams(window.location.search).get('force2d') === '1';
+  } catch {
+    return false;
+  }
+}
+
 // The glass/transmission orb is a desktop enhancement, never a requirement.
 // Touch-first/foldable devices stay on the deterministic 2D shew-stone even if
 // the browser requests a desktop viewport or reports a large CSS width.
@@ -15,7 +24,13 @@ export function shouldUse3DOrb({
   constrained = false,
   maxTouchPoints = 0,
   userAgent = '',
+  force2D = false,
 } = {}) {
+  // Explicit diagnostic/escape hatch. `?force2d=1` is intentionally honored
+  // before every other capability signal so physical QA can prove that the
+  // particle mirror path is running even if a browser exposes unusual device
+  // metadata or a stale desktop-mode viewport.
+  if (force2D || queryForces2D()) return false;
   if (!webglAvailable || reducedMotion || saveData || constrained) return false;
 
   const touchDevice = touchFirst
