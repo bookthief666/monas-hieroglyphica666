@@ -18,6 +18,7 @@ function sourceFiles(dirUrl) {
 
 const vite = read('../vite.config.js');
 const index = read('../index.html');
+const app = read('../src/App.jsx');
 const audio = read('../src/components/AudioEngine.jsx');
 const sourceWitness = read('../src/components/SourceWitness.jsx');
 const mirrorMemory = read('../src/lib/mirrorMemory.js');
@@ -61,6 +62,19 @@ for (const [label, url] of [
   assert.match(url, /^https:\/\//, `${label} must use HTTPS`);
 }
 assert.match(sourceWitness, /target="_blank"[\s\S]*?rel="noreferrer"/, 'External source links must use noreferrer');
+assert.match(app, /English reading · project text/, 'Verbum must label its English paragraph as project text at the point of reading');
+assert.match(app, /Interpretive exegesis · project commentary/, 'Exegesis must label itself as project commentary at the point of reading');
+assert.match(sourceWitness, /Textus · 1564 Witness/, 'The primary-source layer must remain visibly distinguished from project text');
+
+const sourceSpotChecks = [
+  [1, /Per lineam rectam, circulumque/i],
+  [8, /Quaternarii, praeterea expansio cabalistica/i],
+  [16, /Iam nobis de Cruce, paucis/i],
+  [24, /Ut nostrum huius libelli exordium a puncto, recta, circuloque coepimus/i],
+];
+for (const [theoremId, expected] of sourceSpotChecks) {
+  assert.match(getSourceWitness(theoremId).latinIncipit, expected, `Theorem ${theoremId} normalized Latin incipit drifted from the audited 1564 witness`);
+}
 
 assert.match(mirrorMemory, /try\s*\{[\s\S]*localStorage\.getItem/, 'Persistent memory reads must be guarded');
 assert.match(mirrorMemory, /try\s*\{[\s\S]*localStorage\.setItem/, 'Persistent memory writes must be guarded');
@@ -76,4 +90,4 @@ assert.doesNotMatch(deployWorkflow, /claude\/ecstatic-euler/, 'Obsolete developm
 assert.match(deployWorkflow, /run:\s*npm run release:check/, 'Deployment must execute the strict release gate before upload');
 assert.match(deployWorkflow, /needs:\s*build/, 'Pages deploy must depend on the verified build job');
 
-console.log(`Production release audit gate PASS: Pages base/metadata, 24 theorem witnesses, ${rawRuntimeUrls.length} immutable raw-GitHub runtime assets, HTTPS source links, guarded persistence, strict main-only verified deployment.`);
+console.log(`Production release audit gate PASS: Pages base/metadata, 24 theorem witnesses, ${rawRuntimeUrls.length} immutable raw-GitHub runtime assets, source-critical project/1564 labeling, guarded persistence, strict main-only verified deployment.`);
