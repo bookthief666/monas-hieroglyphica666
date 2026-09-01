@@ -3,7 +3,6 @@ import React, { forwardRef, useEffect, useRef } from 'react';
 const AUDIO_SRC =
   'https://raw.githubusercontent.com/bookthief666/monas-hieroglyphica/eae983cd6e2effee405668628f7031f8f5f7976a/Ryuichi%20Sakamoto%20-%20Bibo%20No%20Aozora.mp3';
 
-// Root-level audio so navigating theorems never unmounts/restarts the music.
 export const AudioEngine = forwardRef(function AudioEngine(_props, ref) {
   return <audio ref={ref} src={AUDIO_SRC} loop preload="auto" />;
 });
@@ -36,56 +35,53 @@ const FIELD_WAVES = Object.freeze({
   egg: 'sine', sephirothic: 'sine', radiant: 'triangle', hypercube: 'sine', spiral: 'sine',
 });
 
-// A deliberately quiet, generated resonance layer. It only speaks when a mirror
-// operation resolves; there is no continuous game-like sonification.
+const REGISTER_RATIOS = Object.freeze({
+  exegesis: 2,
+  application: 3 / 2,
+  operate: 4 / 3,
+});
+
 export function RitualResonance({ muted }) {
   const contextRef = useRef(null);
 
   useEffect(() => {
-    const onOperation = (event) => {
-      if (muted || typeof window === 'undefined') return;
-      const detail = event?.detail;
-      if (!detail) return;
-
+    const getContext = () => {
+      if (muted || typeof window === 'undefined') return null;
       const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextCtor) return;
-
+      if (!AudioContextCtor) return null;
       let context = contextRef.current;
       if (!context || context.state === 'closed') {
         context = new AudioContextCtor();
         contextRef.current = context;
       }
       if (context.state === 'suspended') context.resume().catch(() => {});
+      return context;
+    };
 
-      const charge = Math.max(0, Math.min(1, Number(detail.charge) || 0));
-      const direction = Math.max(-1, Math.min(1, Number(detail.direction) || 0));
-      const root = Math.max(48, Number(detail.tone?.rootHz) || 110);
-      const theoremRatio = Math.max(0.5, Number(detail.tone?.ratio) || 1);
-      const fieldRatio = FIELD_RATIOS[detail.field] || 1.5;
-      const wave = FIELD_WAVES[detail.field] || 'sine';
+    const ring = ({ root = 110, ratio = 1.5, wave = 'sine', charge = 0.3, direction = 0, peak = 0.02, duration = 1.2, partial = 0.36 }) => {
+      const context = getContext();
+      if (!context) return;
       const now = context.currentTime;
-      const duration = 1.15 + charge * 0.9;
-      const peak = 0.012 + charge * 0.026;
-
+      const safeCharge = Math.max(0, Math.min(1, Number(charge) || 0));
+      const safeDirection = Math.max(-1, Math.min(1, Number(direction) || 0));
       const master = context.createGain();
       const filter = context.createBiquadFilter();
       filter.type = 'lowpass';
       filter.frequency.setValueAtTime(Math.min(4200, root * 10), now);
-      filter.Q.setValueAtTime(0.7 + charge * 1.2, now);
+      filter.Q.setValueAtTime(0.65 + safeCharge, now);
       master.gain.setValueAtTime(0.0001, now);
-      master.gain.exponentialRampToValueAtTime(peak, now + 0.035);
+      master.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), now + 0.035);
       master.gain.exponentialRampToValueAtTime(0.0001, now + duration);
       master.connect(filter);
       filter.connect(context.destination);
 
-      const frequencies = [root * theoremRatio, root * theoremRatio * fieldRatio];
-      frequencies.forEach((frequency, index) => {
+      [root, root * ratio].forEach((frequency, index) => {
         const oscillator = context.createOscillator();
         const partialGain = context.createGain();
         oscillator.type = index === 0 ? wave : 'sine';
         oscillator.frequency.setValueAtTime(frequency, now);
-        oscillator.detune.setValueAtTime(direction * (index === 0 ? 5 : -7), now);
-        partialGain.gain.setValueAtTime(index === 0 ? 0.8 : 0.36 + charge * 0.12, now);
+        oscillator.detune.setValueAtTime(safeDirection * (index === 0 ? 5 : -7), now);
+        partialGain.gain.setValueAtTime(index === 0 ? 0.8 : partial);
         oscillator.connect(partialGain);
         partialGain.connect(master);
         oscillator.start(now);
@@ -93,9 +89,65 @@ export function RitualResonance({ muted }) {
       });
     };
 
+    const onOperation = (event) => {
+      const detail = event?.detail;
+      if (!detail || muted) return;
+      const charge = Math.max(0, Math.min(1, Number(detail.charge) || 0));
+      const root = Math.max(48, Number(detail.tone?.rootHz) || 110);
+      const theoremRatio = Math.max(0.5, Number(detail.tone?.ratio) || 1);
+      const fieldRatio = FIELD_RATIOS[detail.field] || 1.5;
+      ring({
+        root: root * theoremRatio,
+        ratio: fieldRatio,
+        wave: FIELD_WAVES[detail.field] || 'sine',
+        charge,
+        direction: detail.direction,
+        peak: 0.012 + charge * 0.026,
+        duration: 1.15 + charge * 0.9,
+        partial: 0.36 + charge * 0.12,
+      });
+    };
+
+    const onRegister = (event) => {
+      const detail = event?.detail;
+      const charge = Math.max(0, Math.min(0.7, Number(detail?.charge) || 0));
+      if (!detail || muted || charge < 0.06 || !REGISTER_RATIOS[detail.register]) return;
+      const root = Math.max(48, Number(detail.tone?.rootHz) || (96 + (Number(detail.theoremId) || 1) * 3));
+      ring({
+        root,
+        ratio: REGISTER_RATIOS[detail.register],
+        wave: detail.register === 'operate' ? 'triangle' : 'sine',
+        charge,
+        direction: detail.direction,
+        peak: 0.0035 + charge * 0.008,
+        duration: 0.55 + charge * 0.5,
+        partial: 0.22,
+      });
+    };
+
+    const onCrowned = (event) => {
+      const detail = event?.detail;
+      if (!detail || muted) return;
+      const root = Math.max(48, Number(detail.tone?.rootHz) || (96 + (Number(detail.theoremId) || 13) * 3));
+      ring({
+        root,
+        ratio: 2,
+        wave: 'sine',
+        charge: detail.charge || 0.5,
+        direction: detail.direction,
+        peak: 0.011,
+        duration: 1.45,
+        partial: 0.28,
+      });
+    };
+
     window.addEventListener('monas:mirror-operation', onOperation);
+    window.addEventListener('monas:ritual-register', onRegister);
+    window.addEventListener('monas:anatomia-crowned', onCrowned);
     return () => {
       window.removeEventListener('monas:mirror-operation', onOperation);
+      window.removeEventListener('monas:ritual-register', onRegister);
+      window.removeEventListener('monas:anatomia-crowned', onCrowned);
       const context = contextRef.current;
       contextRef.current = null;
       if (context && context.state !== 'closed') context.close().catch(() => {});
