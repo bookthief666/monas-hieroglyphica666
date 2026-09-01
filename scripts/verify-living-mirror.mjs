@@ -23,6 +23,7 @@ import {
   returningWorkState,
   rankConcordances,
 } from '../src/lib/ritualContinuity.js';
+import { deriveMirrorReturnState, mirrorReturnModes } from '../src/lib/mirrorReturnState.js';
 
 const EXPECTED_FIELDS = Object.freeze({
   1: 'radial', 2: 'seed', 3: 'solar', 4: 'lunar', 5: 'harmonic', 6: 'axial',
@@ -43,7 +44,12 @@ assert.equal(THEOREMS.length, 24, 'The Living Grimoire must contain exactly 24 t
 assert.deepEqual(THEOREMS.map((theorem) => theorem.id), Array.from({ length: 24 }, (_, index) => index + 1));
 assert.equal(new Set(supportedParticleShapes).size, supportedParticleShapes.length);
 assert.equal(new Set(projectionKinds).size, projectionKinds.length);
+assert.equal(new Set(mirrorReturnModes).size, mirrorReturnModes.length);
 assert.ok(recoveredProjectionRelics.length >= 3, 'Recovered geometry reliquary must preserve displaced forms');
+
+const pristineReturn = deriveMirrorReturnState(1, deriveRitualContinuity());
+assert.equal(pristineReturn.active, false, 'An untouched theorem must not invent an under-glass memory imprint');
+assert.equal(pristineReturn.intensity, 0);
 
 let sampledTargets = 0;
 let sampledSkeletonPoints = 0;
@@ -51,6 +57,7 @@ let sampledRoles = 0;
 let verifiedProjections = 0;
 let continuityCases = 0;
 let memoryImprintCases = 0;
+let mirrorReturnCases = 0;
 
 for (const theorem of THEOREMS) {
   const { id: theoremId, shape } = theorem;
@@ -99,6 +106,17 @@ for (const theorem of THEOREMS) {
   assert.ok(continuity.exegesisReveal >= 0 && continuity.exegesisReveal <= 0.2);
   assert.ok(continuity.anatomiaTension >= 0 && continuity.anatomiaTension <= 0.72);
   assert.ok(continuity.operatioText.length > 20);
+
+  const returnState = deriveMirrorReturnState(theoremId, continuity);
+  assert.equal(returnState.active, true);
+  assert.equal(returnState.theoremId, theoremId);
+  assert.equal(returnState.mode, spec.operative.mode);
+  assert.ok(projectionKinds.includes(returnState.kind), `Theorem ${theoremId} return imprint uses unsupported projection ${returnState.kind}`);
+  assert.ok(returnState.intensity >= 0.04 && returnState.intensity <= 0.22);
+  assert.ok(Math.abs(returnState.direction) === 1);
+  assert.ok(returnState.scaleBias > 0.96 && returnState.scaleBias < 1.04);
+  finiteObject(returnState, `returnState[${theoremId}]`);
+  mirrorReturnCases += 1;
 
   const navImprint = theoremMemoryImprint(theoremMemory);
   assert.ok(navImprint > 0 && navImprint <= 0.9, `Theorem ${theoremId} memory residue must be bounded`);
@@ -179,11 +197,13 @@ assert.equal(new Set(THEOREMS.map((theorem) => theorem.shape)).size, supportedPa
 assert.equal(verifiedProjections, 48);
 assert.equal(continuityCases, 72, 'Every theorem must carry continuity into Exegesis, Operatio, and Anatomia');
 assert.equal(memoryImprintCases, 24, 'Every theorem memory must map to bounded ladder residue');
+assert.equal(mirrorReturnCases, 24, 'Every worked theorem must map to a bounded under-glass return state');
 assert.equal(readMirrorMemory(), null, 'Mirror memory must be safe in non-browser verification');
 
 const appSource = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
 const apparitionSource = readFileSync(new URL('../src/components/SafeRitualApparition.jsx', import.meta.url), 'utf8');
 const metamorphosisSource = readFileSync(new URL('../src/components/RegisterMetamorphosis.jsx', import.meta.url), 'utf8');
+const returnImprintSource = readFileSync(new URL('../src/components/MirrorReturnImprint.jsx', import.meta.url), 'utf8');
 const thresholdSource = readFileSync(new URL('../src/components/Threshold.jsx', import.meta.url), 'utf8');
 const navSource = readFileSync(new URL('../src/components/TheoremNav.jsx', import.meta.url), 'utf8');
 const scholarSource = readFileSync(new URL('../src/components/ScholarMargin.jsx', import.meta.url), 'utf8');
@@ -191,16 +211,18 @@ assert.match(appSource, /queryFlag\('force2d'\)/, 'The clean candidate must reta
 assert.match(appSource, /renderer-diagnostic/, 'Renderer diagnostics must remain opt-in and available');
 assert.match(appSource, /monas:ritual-register/, 'Register crossings must emit continuity events');
 assert.match(appSource, /RegisterMetamorphosis/, 'Register crossings must visibly originate at the shew-stone');
+assert.match(appSource, /MirrorReturnImprint/, 'Worked theorem memory must be carried back into the shew-stone');
 assert.match(appSource, /resumeTheorem/, 'Re-entry must resume the last worked theorem rather than reset to I');
 assert.match(apparitionSource, /if \(!active\) return null;/, 'Inactive theorem apparitions must unmount completely');
 assert.match(metamorphosisSource, /if \(!transition\) return null;/, 'Inactive register metamorphosis must unmount completely');
+assert.match(returnImprintSource, /deriveMirrorReturnState/, 'The mirror return imprint must derive from the canonical continuity model');
 assert.match(thresholdSource, /Re-enter the Work/, 'The Threshold must distinguish first initiation from return');
 assert.match(navSource, /theorem-memory-orbit/, 'The theorem ladder must retain non-gamified ritual residue');
 assert.match(scholarSource, /rankConcordances/, 'Scholar\'s Margin must be able to foreground operation-resonant concordances');
 
 console.log(
-  `Living Grimoire VI verifier PASS: 24 canonical theorems, ${verifiedProjections} secondary projections, `
-  + `${continuityCases} continuity register cases, ${memoryImprintCases} ladder-memory cases, `
+  `Living Grimoire VII verifier PASS: 24 canonical theorems, ${verifiedProjections} secondary projections, `
+  + `${continuityCases} continuity register cases, ${memoryImprintCases} ladder-memory cases, ${mirrorReturnCases} shew-stone return states, `
   + `${sampledTargets} particle targets, ${sampledSkeletonPoints} skeleton points, ${sampledRoles} role targets, `
-  + `${recoveredProjectionRelics.length} recovered relic geometries, returning Threshold + register metamorphosis locked.`,
+  + `${recoveredProjectionRelics.length} recovered relic geometries, returning Threshold + register metamorphosis + under-glass memory locked.`,
 );
