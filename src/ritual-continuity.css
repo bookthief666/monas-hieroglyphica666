@@ -1,6 +1,7 @@
 /* Living Grimoire V — continuity should be felt, not presented as UI chrome. */
 .ritual-return-shell {
   --ritual-imprint: 0;
+  --ritual-direction-angle: 0deg;
   position: relative;
   display: inline-grid;
   place-items: center;
@@ -14,21 +15,21 @@
   inset: -8px;
   border-radius: 50%;
   pointer-events: none;
-  opacity: calc(var(--ritual-imprint) * 0.7);
+  opacity: var(--ritual-imprint);
   transition: opacity 900ms ease, transform 1200ms ease, box-shadow 1200ms ease;
 }
 
 .ritual-return-shell::before {
-  border: 1px solid color-mix(in srgb, var(--ink-gold) calc(22% + var(--ritual-imprint) * 30%), transparent);
+  border: 1px solid rgba(255, 223, 115, 0.28);
   box-shadow:
-    0 0 calc(12px + var(--ritual-imprint) * 24px) rgba(255, 223, 115, calc(var(--ritual-imprint) * 0.18)),
-    inset 0 0 calc(10px + var(--ritual-imprint) * 18px) rgba(255, 68, 68, calc(var(--ritual-imprint) * 0.08));
+    0 0 28px rgba(255, 223, 115, 0.16),
+    inset 0 0 22px rgba(255, 68, 68, 0.07);
 }
 
 .ritual-return-shell::after {
   inset: -14px;
-  border: 1px dotted rgba(255, 223, 115, calc(var(--ritual-imprint) * 0.18));
-  transform: rotate(calc(var(--ritual-direction, 0) * 8deg));
+  border: 1px dotted rgba(255, 223, 115, 0.18);
+  transform: rotate(var(--ritual-direction-angle));
 }
 
 .ritual-return-shell.is-remembered::after {
@@ -73,8 +74,8 @@
 }
 
 @keyframes ritual-memory-breath {
-  from { transform: rotate(calc(var(--ritual-direction, 0) * 8deg)) scale(0.992); opacity: calc(var(--ritual-imprint) * 0.34); }
-  to { transform: rotate(calc(var(--ritual-direction, 0) * 8deg + 2deg)) scale(1.012); opacity: calc(var(--ritual-imprint) * 0.62); }
+  from { transform: rotate(var(--ritual-direction-angle)) scale(0.992); opacity: 0.28; }
+  to { transform: rotate(var(--ritual-direction-angle)) scale(1.012); opacity: 0.58; }
 }
 
 @media (prefers-reduced-motion: reduce) {
