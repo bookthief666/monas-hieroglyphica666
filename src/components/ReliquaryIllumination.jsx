@@ -20,10 +20,10 @@ export default function ReliquaryIllumination({ theoremId, continuity = null }) 
     <section className="reliquary-section w-full max-w-3xl mt-9 md:mt-12" aria-label={`Hidden figure reliquary for Theorem ${theoremId}`}>
       <div className="flex items-end justify-between gap-4 mb-3 px-1">
         <div>
-          <p className="font-medieval text-[0.64rem] md:text-xs tracking-[0.3em] uppercase text-[var(--ink-red)] opacity-78">
+          <p className="font-medieval text-[0.64rem] md:text-xs tracking-[0.3em] uppercase text-[var(--ink-red)] opacity-80">
             Reliquiae Figurarum
           </p>
-          <p className="font-roman text-sm md:text-base italic text-[var(--text-muted)] opacity-72 mt-1">
+          <p className="font-roman text-sm md:text-base italic text-[var(--text-muted)] opacity-70 mt-1">
             The hidden diagram condenses, then the operative plate is etched through it.
           </p>
         </div>
