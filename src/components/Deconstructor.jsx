@@ -47,6 +47,8 @@ function MemberShape({ id, color }) {
 export default function Deconstructor({ palette, insight, theoremId = 13 }) {
   const svgRef = useRef(null);
   const drag = useRef(null);
+  const dragFrame = useRef(0);
+  const dragDelta = useRef({ x: 0, y: 0 });
   const crownedRef = useRef(null);
   const projection = getProjectionSpec(theoremId);
   const ritual = useMirrorRitual(theoremId);
@@ -89,35 +91,65 @@ export default function Deconstructor({ palette, insight, theoremId = 13 }) {
     crownedRef.current = crowned;
   }, [crowned, continuity, lastOperation, ritual.theoremMemory, theoremId]);
 
-  const toSvg = useCallback((clientX, clientY) => {
-    const rect = svgRef.current.getBoundingClientRect();
-    const ratio = VIEW / rect.width;
-    return { x: (clientX - rect.left) * ratio, y: (clientY - rect.top) * ratio };
-  }, []);
-
-  const onPointerDown = (id) => (e) => {
-    e.stopPropagation();
-    const p = toSvg(e.clientX, e.clientY);
-    drag.current = { id, lastX: p.x, lastY: p.y };
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-  };
-
-  const onPointerMove = (e) => {
-    if (!drag.current) return;
-    const p = toSvg(e.clientX, e.clientY);
-    const ddx = p.x - drag.current.lastX;
-    const ddy = p.y - drag.current.lastY;
-    drag.current.lastX = p.x;
-    drag.current.lastY = p.y;
+  const applyDragDelta = useCallback((id, ddx, ddy) => {
+    if (!id || (Math.abs(ddx) < 0.001 && Math.abs(ddy) < 0.001)) return;
     setOffsets((prev) => {
-      const [ox, oy] = prev[drag.current.id];
+      const [ox, oy] = prev[id];
       const nx = Math.max(-CENTER + 30, Math.min(CENTER - 30, ox + ddx));
       const ny = Math.max(-CENTER + 30, Math.min(CENTER - 30, oy + ddy));
-      return { ...prev, [drag.current.id]: [nx, ny] };
+      if (nx === ox && ny === oy) return prev;
+      return { ...prev, [id]: [nx, ny] };
     });
+  }, []);
+
+  const flushDrag = useCallback(() => {
+    if (dragFrame.current) cancelAnimationFrame(dragFrame.current);
+    dragFrame.current = 0;
+    const active = drag.current;
+    const pending = dragDelta.current;
+    dragDelta.current = { x: 0, y: 0 };
+    if (!active) return;
+    applyDragDelta(active.id, pending.x, pending.y);
+  }, [applyDragDelta]);
+
+  useEffect(() => () => {
+    cancelAnimationFrame(dragFrame.current);
+  }, []);
+
+  const onPointerDown = (id) => (event) => {
+    event.stopPropagation();
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0) return;
+    const ratio = VIEW / rect.width;
+    dragDelta.current = { x: 0, y: 0 };
+    drag.current = {
+      id,
+      left: rect.left,
+      top: rect.top,
+      ratio,
+      lastX: (event.clientX - rect.left) * ratio,
+      lastY: (event.clientY - rect.top) * ratio,
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
   };
 
-  const onPointerUp = () => { drag.current = null; };
+  const onPointerMove = (event) => {
+    const active = drag.current;
+    if (!active) return;
+    const x = (event.clientX - active.left) * active.ratio;
+    const y = (event.clientY - active.top) * active.ratio;
+    dragDelta.current.x += x - active.lastX;
+    dragDelta.current.y += y - active.lastY;
+    active.lastX = x;
+    active.lastY = y;
+    if (!dragFrame.current) dragFrame.current = requestAnimationFrame(flushDrag);
+  };
+
+  const onPointerUp = () => {
+    flushDrag();
+    drag.current = null;
+  };
+
   const recombine = () => setOffsets(Object.fromEntries(PARTS.map((p) => [p.id, [0, 0]])));
   const disperse = () => {
     const ring = [[-70, -40], [70, -40], [-70, 60], [70, 60]];
@@ -162,6 +194,7 @@ export default function Deconstructor({ palette, insight, theoremId = 13 }) {
             }}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
             onPointerLeave={onPointerUp}
           >
             {PARTS.map((p) => {
