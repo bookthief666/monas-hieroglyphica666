@@ -1,6 +1,6 @@
 /* Samsung/Android compositor safety.
    Keep the grimoire composition while avoiding the blend/filter combinations
-   that can intermittently wash the page or drop a promoted canvas layer. */
+   that can intermittently wash the page or drop/recycle a canvas layer. */
 .fold-safe-compositor .bg-animate {
   mix-blend-mode: normal !important;
 }
@@ -27,7 +27,7 @@
 
 /* IMPORTANT: do not GPU-promote the 2D shew-stone on Samsung/Fold.
    The previous translateZ/contain/absolute-canvas combination could leave the
-   compositor showing only the black vessel while the canvas layer vanished. */
+   compositor showing only the vessel while the canvas layer vanished. */
 .fold-safe-compositor .living-black-mirror {
   isolation: isolate;
   contain: none !important;
@@ -38,6 +38,10 @@
   background: radial-gradient(circle at 48% 44%, #0a0808 0%, #020202 56%, #000 100%) !important;
 }
 
+/* The Fold canvas is deliberately opaque. A transparent canvas can expose a
+   transient white/default compositor surface for one frame when Samsung Chrome
+   recycles its bitmap. Painting the element itself black guarantees that a
+   recycled or briefly cleared frame remains a black shew-stone. */
 .fold-safe-compositor .living-black-mirror > canvas {
   position: relative !important;
   inset: auto !important;
@@ -45,9 +49,20 @@
   display: block !important;
   opacity: 1 !important;
   mix-blend-mode: normal !important;
-  background: transparent !important;
+  background-color: #020203 !important;
+  background-image: none !important;
   transform: none !important;
   -webkit-transform: none !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  will-change: auto !important;
+  transition: none !important;
+}
+
+/* Do not let the broad stage transition rule animate the mirror subtree. */
+.fold-safe-compositor.stage-veil-transition .living-black-mirror,
+.fold-safe-compositor.stage-veil-transition .living-black-mirror * {
+  transition: none !important;
 }
 
 /* The canvas already paints depth/skeleton/rim information itself. Keep the
