@@ -3,9 +3,10 @@ import { THEOREMS } from './data/theorems.js';
 import { getPalette } from './data/palettes.js';
 import { stageForTheorem } from './lib/stages.js';
 import Threshold from './components/Threshold.jsx';
-import { AudioEngine, MuteButton } from './components/AudioEngine.jsx';
+import { AudioEngine, MuteButton, RitualResonance } from './components/AudioEngine.jsx';
 import ParticleSigil from './components/ParticleSigil.jsx';
-import HolographicSigil from './components/HolographicSigil.jsx';
+import ExegesisSeal from './components/ExegesisSeal.jsx';
+import { RitualApparition } from './components/RitualProjection.jsx';
 import KineticText from './components/KineticText.jsx';
 import ScholarMargin from './components/ScholarMargin.jsx';
 import ApplicationPanel from './components/ApplicationPanel.jsx';
@@ -128,12 +129,14 @@ export default function App() {
   return (
     <>
       <AudioEngine ref={audioRef} />
+      <RitualResonance muted={isMuted || !hasStarted} />
 
       {!hasStarted ? (
         <Threshold onEnter={startExperience} />
       ) : (
         <div className={`stage-${stage.id} stage-veil-transition min-h-screen relative flex flex-col items-center justify-start py-6 md:py-12 px-2 md:px-8`}>
           <MuteButton muted={isMuted} onToggle={toggleAudio} />
+          <RitualApparition theoremId={item.id} active={transition} />
 
           {/* Stage indicator — the operator's place on the alchemical ascent */}
           <div className="fixed top-4 left-4 z-50 text-left pointer-events-none">
@@ -216,11 +219,11 @@ export default function App() {
                 {viewMode === 'application' && <ApplicationPanel theorem={item} />}
 
                 {viewMode === 'operate' && (
-                  <Deconstructor palette={palette} insight={item.operative?.insight} />
+                  <Deconstructor theoremId={item.id} palette={palette} insight={item.operative?.insight} />
                 )}
 
                 {(viewMode === 'theorem' || viewMode === 'exegesis') && (
-                  <HolographicSigil
+                  <ExegesisSeal
                     theoremId={item.id}
                     onClick={toggleExegesisViaSigil}
                     dimmed={viewMode === 'exegesis'}
