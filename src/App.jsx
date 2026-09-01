@@ -75,7 +75,7 @@ function HeroSigil({ theorem, stage, continuity, force2D = false, diagnostics = 
 
   const shellStyle = {
     '--ritual-imprint': imprint.toFixed(3),
-    '--ritual-direction': direction.toFixed(3),
+    '--ritual-direction-angle': `${(direction * 8).toFixed(2)}deg`,
   };
 
   if (!allow3D) {
