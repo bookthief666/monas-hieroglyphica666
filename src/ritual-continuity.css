@@ -58,7 +58,6 @@
   text-shadow: 0 0 10px rgba(255, 223, 115, 0.2);
 }
 
-/* Register metamorphosis is mounted only for the ~760ms change itself. */
 .register-metamorphosis {
   --register-turn: 0deg;
   position: absolute;
@@ -103,7 +102,6 @@
 .register-metamorphosis-to-application .register-metamorphosis-target { transform: rotate(var(--register-turn)); }
 .register-metamorphosis-to-operate .register-metamorphosis-target { transform: rotate(var(--register-turn)) scale(0.96); }
 
-/* The initiatory ladder remembers without becoming a completion tracker. */
 .theorem-memory-node {
   --theorem-memory-imprint: 0;
 }
@@ -123,7 +121,6 @@
   text-shadow: 0 0 9px rgba(255, 223, 115, 0.16);
 }
 
-/* A returning operator sees the last theorem at the gate as a distant residue. */
 .threshold-memory-projection {
   position: absolute;
   width: min(82vmin, 720px);
@@ -179,9 +176,9 @@
 }
 
 @keyframes register-metamorphosis-target {
-  0%, 26% { opacity: 0; transform: rotate(calc(var(--register-turn) * -1)) scale(0.72); }
+  0%, 26% { opacity: 0; transform: rotate(0deg) scale(0.72); }
   60% { opacity: 0.62; }
-  100% { opacity: 0; transform: rotate(0deg) scale(1.04); }
+  100% { opacity: 0; transform: rotate(var(--register-turn)) scale(1.04); }
 }
 
 @keyframes register-metamorphosis-thread {
@@ -191,7 +188,7 @@
 }
 
 @keyframes theorem-memory-breath {
-  from { transform: scale(0.94); opacity: calc(var(--theorem-memory-imprint) * 0.48); }
+  from { transform: scale(0.94); opacity: 0.16; }
   to { transform: scale(1.06); opacity: var(--theorem-memory-imprint); }
 }
 
