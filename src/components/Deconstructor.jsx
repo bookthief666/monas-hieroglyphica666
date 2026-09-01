@@ -1,21 +1,12 @@
-import React, { useRef, useState, useCallback, useMemo } from 'react';
+import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import RitualProjection from './RitualProjection.jsx';
 import { getProjectionSpec } from '../lib/projectionSpec.js';
 import useMirrorRitual from '../lib/useMirrorRitual.js';
-
-// ============================================================================
-// THE OPERATIVE MONAD (Theorema XIII — Anatomia Monadis)
-// The operator drags the four members apart and recombines them. The mass
-// (Pondus) is conserved at Dee's sacred 252 (Theorema XX) — each member carries
-// 63, and 4 × 63 = 252 — but COHERENCE is what the operation actually changes.
-// Scattered, the parts are a heap of equal weight; synthesised, they crown into
-// the Stone. The lesson: integration, not accumulation, makes the Monad.
-// ============================================================================
+import { initialAnatomiaOffsets } from '../lib/ritualContinuity.js';
 
 const VIEW = 240;
 const CENTER = VIEW / 2;
 
-// Each member's home position and its Gematria weight (sum = 252).
 const PARTS = [
   { id: 'luna', label: 'Luna ☾', home: [CENTER, 56], weight: 63 },
   { id: 'sol', label: 'Sol ☉', home: [CENTER, 104], weight: 63 },
@@ -55,29 +46,48 @@ function MemberShape({ id, color }) {
 
 export default function Deconstructor({ palette, insight, theoremId = 13 }) {
   const svgRef = useRef(null);
-  const drag = useRef(null); // { id, lastX, lastY }
-  const [offsets, setOffsets] = useState(() => Object.fromEntries(PARTS.map((p) => [p.id, [0, 0]])));
+  const drag = useRef(null);
+  const crownedRef = useRef(null);
   const projection = getProjectionSpec(theoremId);
-  const { lastOperation, memoryCount, strongestCharge } = useMirrorRitual(theoremId);
+  const ritual = useMirrorRitual(theoremId);
+  const { lastOperation, memoryCount, continuity } = ritual;
+  const [offsets, setOffsets] = useState(() => initialAnatomiaOffsets(theoremId, continuity));
 
   const c0 = (palette && palette[0]) || '#ffdf73';
   const c2 = (palette && palette[2]) || '#ff4444';
 
-  // total dispersion → coherence. Fully home = 1 (the Stone); scattered → 0.
   const coherence = useMemo(() => {
     let disp = 0;
     for (const p of PARTS) {
       const [dx, dy] = offsets[p.id];
       disp += Math.sqrt(dx * dx + dy * dy);
     }
-    const maxDisp = PARTS.length * 90; // ~ when each part is dragged to the rim
+    const maxDisp = PARTS.length * 90;
     return Math.max(0, Math.min(1, 1 - disp / maxDisp));
   }, [offsets]);
 
   const crowned = coherence > 0.985;
-  const pondus = 252; // conserved — the mass never changes, only the coherence
-  const rememberedCharge = Math.max(Number(lastOperation?.charge) || 0, Math.min(0.55, strongestCharge * 0.45));
-  const latentCharge = Math.max(rememberedCharge, crowned ? 1 : Math.max(0, coherence - 0.72) * 0.8);
+  const pondus = 252;
+  const latentCharge = Math.max(continuity.imprint, crowned ? 1 : Math.max(0, coherence - 0.72) * 0.8);
+
+  useEffect(() => {
+    if (crownedRef.current === null) {
+      crownedRef.current = crowned;
+      return;
+    }
+    if (crowned && !crownedRef.current && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('monas:anatomia-crowned', {
+        detail: {
+          theoremId,
+          charge: Math.max(continuity.registerResonance, 0.35),
+          mode: continuity.mode,
+          direction: continuity.direction,
+          tone: ritual.theoremMemory?.lastTone || lastOperation?.tone || null,
+        },
+      }));
+    }
+    crownedRef.current = crowned;
+  }, [crowned, continuity, lastOperation, ritual.theoremMemory, theoremId]);
 
   const toSvg = useCallback((clientX, clientY) => {
     const rect = svgRef.current.getBoundingClientRect();
@@ -101,7 +111,6 @@ export default function Deconstructor({ palette, insight, theoremId = 13 }) {
     drag.current.lastY = p.y;
     setOffsets((prev) => {
       const [ox, oy] = prev[drag.current.id];
-      // clamp so members stay within the scrying field
       const nx = Math.max(-CENTER + 30, Math.min(CENTER - 30, ox + ddx));
       const ny = Math.max(-CENTER + 30, Math.min(CENTER - 30, oy + ddy));
       return { ...prev, [drag.current.id]: [nx, ny] };
@@ -116,7 +125,10 @@ export default function Deconstructor({ palette, insight, theoremId = 13 }) {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto flex flex-col items-center">
+    <div
+      className="w-full max-w-3xl mx-auto flex flex-col items-center ritual-register-received"
+      style={{ '--ritual-register-charge': continuity.registerResonance }}
+    >
       <p className="font-medieval text-center text-[var(--ink-red)] text-sm tracking-[0.3em] uppercase mb-2 opacity-80">
         Anatomia Monadis — dissect and recompose the glyph
       </p>
@@ -152,8 +164,6 @@ export default function Deconstructor({ palette, insight, theoremId = 13 }) {
             onPointerUp={onPointerUp}
             onPointerLeave={onPointerUp}
           >
-            {/* faint binding lines from each member to the central point — the
-                "irrevocable bond to the centre" of Theorem XIII */}
             {PARTS.map((p) => {
               const [dx, dy] = offsets[p.id];
               return (
@@ -179,7 +189,6 @@ export default function Deconstructor({ palette, insight, theoremId = 13 }) {
                   onPointerDown={onPointerDown(p.id)}
                   style={{ cursor: 'grab', filter: `drop-shadow(0 0 6px ${c0})` }}
                 >
-                  {/* invisible hit area for easier grabbing */}
                   <circle cx="0" cy="0" r="30" fill="transparent" />
                   <MemberShape id={p.id} color={crowned ? c0 : c2} />
                 </g>
@@ -205,7 +214,7 @@ export default function Deconstructor({ palette, insight, theoremId = 13 }) {
           )}
           {memoryCount > 0 && (
             <p className="font-medieval text-[var(--ink-gold)] text-[0.65rem] tracking-[0.2em] uppercase opacity-60 mb-4">
-              Vestigium · {lastOperation?.mode || 'memoria'}
+              Vestigium · {continuity.label}
             </p>
           )}
           <div className="flex gap-3 justify-center md:justify-start">
