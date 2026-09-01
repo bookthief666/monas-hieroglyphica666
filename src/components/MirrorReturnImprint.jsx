@@ -10,11 +10,12 @@ export default function MirrorReturnImprint({ theoremId, continuity }) {
 
   if (!state.active) return null;
 
+  const endRotation = state.rotationDeg + state.direction * 360;
   const style = {
     '--mirror-return-opacity': state.intensity.toFixed(3),
     '--mirror-return-rotation': `${state.rotationDeg.toFixed(2)}deg`,
+    '--mirror-return-end-rotation': `${endRotation.toFixed(2)}deg`,
     '--mirror-return-scale': state.scaleBias.toFixed(4),
-    '--mirror-return-direction': String(state.direction),
     '--mirror-return-pulse': state.pulse.toFixed(3),
   };
 
