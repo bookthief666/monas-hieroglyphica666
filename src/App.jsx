@@ -8,12 +8,13 @@ import Threshold from './components/Threshold.jsx';
 import { AudioEngine, MuteButton, RitualResonance } from './components/AudioEngine.jsx';
 import ParticleSigil from './components/ParticleSigil.jsx';
 import ExegesisSeal from './components/ExegesisSeal.jsx';
-import { RitualApparition } from './components/RitualProjection.jsx';
+import SafeRitualApparition from './components/SafeRitualApparition.jsx';
 import KineticText from './components/KineticText.jsx';
 import ScholarMargin from './components/ScholarMargin.jsx';
 import ApplicationPanel from './components/ApplicationPanel.jsx';
 import Deconstructor from './components/Deconstructor.jsx';
 import TheoremNav from './components/TheoremNav.jsx';
+import './fold-safe.css';
 
 // The flagship 3D orb is code-split: the text-first experience never waits on WebGL.
 const MonadOrb = lazy(() => import('./components/MonadOrb.jsx'));
@@ -28,6 +29,11 @@ const hasWebGL = () => {
   }
 };
 
+const queryFlag = (name) => {
+  if (typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get(name) === '1';
+};
+
 class OrbBoundary extends Component {
   constructor(p) { super(p); this.state = { failed: false }; }
   static getDerivedStateFromError() { return { failed: true }; }
@@ -35,15 +41,14 @@ class OrbBoundary extends Component {
   render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 
-function HeroSigil({ theorem, stage }) {
-  const profile = useDeviceProfile();
+function HeroSigil({ theorem, stage, profile, force2D = false, diagnostics = false }) {
   const [webglAvailable] = useState(hasWebGL);
   const [orbHealthy, setOrbHealthy] = useState(true);
   const [orbMounted, setOrbMounted] = useState(false);
   const containerRef = useRef(null);
   const fallback = <ParticleSigil currentShape={theorem.shape} theoremId={theorem.id} />;
 
-  const allow3D = orbHealthy && shouldUse3DOrb({
+  const allow3D = !force2D && orbHealthy && shouldUse3DOrb({
     ...profile,
     webglAvailable,
     maxTouchPoints: typeof navigator !== 'undefined' ? navigator.maxTouchPoints : 0,
@@ -65,15 +70,24 @@ function HeroSigil({ theorem, stage }) {
     return () => clearTimeout(timer);
   }, [allow3D, orbMounted]);
 
-  if (!allow3D) return fallback;
-  return (
-    <div className="scrying-mirror" style={{ cursor: 'grab' }} ref={containerRef}>
-      <OrbBoundary fallback={fallback}>
-        <Suspense fallback={fallback}>
-          <MonadOrb theoremId={theorem.id} stage={stage} onReady={() => setOrbMounted(true)} />
-        </Suspense>
-      </OrbBoundary>
+  const diagnostic = diagnostics ? (
+    <div className="renderer-diagnostic">
+      renderer: {allow3D ? '3D WebGL' : '2D particle'} · force2d:{force2D ? '1' : '0'} · touch:{profile.touchFirst ? '1' : '0'}
     </div>
+  ) : null;
+
+  if (!allow3D) return <>{fallback}{diagnostic}</>;
+  return (
+    <>
+      <div className="scrying-mirror" style={{ cursor: 'grab' }} ref={containerRef}>
+        <OrbBoundary fallback={fallback}>
+          <Suspense fallback={fallback}>
+            <MonadOrb theoremId={theorem.id} stage={stage} onReady={() => setOrbMounted(true)} />
+          </Suspense>
+        </OrbBoundary>
+      </div>
+      {diagnostic}
+    </>
   );
 }
 
@@ -93,6 +107,11 @@ export default function App() {
   const [isMuted, setIsMuted] = useState(false);
 
   const audioRef = useRef(null);
+  const profile = useDeviceProfile();
+  const force2D = queryFlag('force2d');
+  const diagnostics = queryFlag('diag');
+  const android = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent || '');
+  const safeCompositor = force2D || android || profile.touchFirst || profile.coarsePointer || profile.hoverNone;
   const stage = stageForTheorem(item.id);
   const palette = getPalette(item.id);
 
@@ -138,9 +157,9 @@ export default function App() {
       {!hasStarted ? (
         <Threshold onEnter={startExperience} />
       ) : (
-        <div className={`stage-${stage.id} stage-veil-transition min-h-screen relative flex flex-col items-center justify-start py-6 md:py-12 px-2 md:px-8`}>
+        <div className={`stage-${stage.id} stage-veil-transition ${safeCompositor ? 'fold-safe-compositor' : ''} min-h-screen relative flex flex-col items-center justify-start py-6 md:py-12 px-2 md:px-8`}>
           <MuteButton muted={isMuted} onToggle={toggleAudio} />
-          <RitualApparition theoremId={item.id} active={transition} />
+          <SafeRitualApparition theoremId={item.id} active={transition} safeCompositor={safeCompositor} />
 
           {/* Stage indicator — the operator's place on the alchemical ascent */}
           <div className="fixed top-4 left-4 z-50 text-left pointer-events-none">
@@ -175,7 +194,7 @@ export default function App() {
             </header>
 
             <div className="flex justify-center w-full my-6 md:my-10 relative z-20 animate-float animate-pulse-glow">
-              <HeroSigil theorem={item} stage={stage.id} />
+              <HeroSigil theorem={item} stage={stage.id} profile={profile} force2D={force2D} diagnostics={diagnostics} />
             </div>
 
             {/* View selector — the four registers of the Work */}
