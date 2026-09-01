@@ -45,6 +45,7 @@ export default function useMirrorRitual(theoremId) {
   );
 
   return {
+    memory,
     lastOperation,
     theoremMemory,
     continuity,
