@@ -3,6 +3,7 @@ import RitualProjection from './RitualProjection.jsx';
 import LivingMarginalia from './LivingMarginalia.jsx';
 import { getProjectionSpec } from '../lib/projectionSpec.js';
 import '../vision-completion.css';
+import '../release-polish.css';
 
 const prettyKind = (kind = '') => kind
   .split('-')
@@ -17,7 +18,7 @@ export default function ReliquaryIllumination({ theoremId, continuity = null }) 
   const charge = Math.max(0.24, Math.min(0.68, 0.32 + remembered * 0.38));
 
   return (
-    <section className="reliquary-section w-full max-w-3xl mt-9 md:mt-12" aria-label={`Hidden figure reliquary for Theorem ${theoremId}`}>
+    <section className="reliquary-section reliquary-section-compact w-full" aria-label={`Hidden figure reliquary for Theorem ${theoremId}`}>
       <div className="flex items-end justify-between gap-4 mb-3 px-1">
         <div>
           <p className="font-medieval text-[0.64rem] md:text-xs tracking-[0.3em] uppercase text-[var(--ink-red)] opacity-80">
