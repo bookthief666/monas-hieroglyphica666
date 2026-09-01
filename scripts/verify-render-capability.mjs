@@ -31,10 +31,11 @@ assert.equal(
   false,
   'Android UA must never receive the transmission-material orb',
 );
+assert.equal(shouldUse3DOrb({ ...desktop, force2D: true }), false, 'Explicit force2D must override an otherwise eligible desktop');
 assert.equal(shouldUse3DOrb({ ...desktop, reducedMotion: true }), false, 'Reduced motion must disable the 3D orb');
 assert.equal(shouldUse3DOrb({ ...desktop, saveData: true }), false, 'Save-Data must disable the 3D orb');
 assert.equal(shouldUse3DOrb({ ...desktop, constrained: true }), false, 'Constrained devices must disable the 3D orb');
 assert.equal(shouldUse3DOrb({ ...desktop, webglAvailable: false }), false, 'No WebGL must fall back cleanly');
 assert.equal(shouldUse3DOrb({ ...desktop, width: 960 }), false, 'Small fine-pointer surfaces should prefer the particle mirror');
 
-console.log('Renderer capability verifier PASS: Fold/touch-first paths are locked to the particle mirror; desktop 3D remains available.');
+console.log('Renderer capability verifier PASS: Fold/touch-first and explicit force-2D paths are locked to the particle mirror; desktop 3D remains available.');
