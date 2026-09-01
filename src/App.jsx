@@ -6,18 +6,24 @@ import Threshold from './components/Threshold.jsx';
 import { AudioEngine, MuteButton, RitualResonance } from './components/AudioEngine.jsx';
 import ParticleSigil from './components/ParticleSigil.jsx';
 import ExegesisSeal from './components/ExegesisSeal.jsx';
-import { RitualApparition } from './components/RitualProjection.jsx';
+import SafeRitualApparition from './components/SafeRitualApparition.jsx';
 import KineticText from './components/KineticText.jsx';
 import ScholarMargin from './components/ScholarMargin.jsx';
 import ApplicationPanel from './components/ApplicationPanel.jsx';
 import Deconstructor from './components/Deconstructor.jsx';
 import TheoremNav from './components/TheoremNav.jsx';
+import useMirrorRitual from './lib/useMirrorRitual.js';
+import { continuityRegisterDetail } from './lib/ritualContinuity.js';
 
-// The flagship 3D orb is code-split: the text-first experience never waits on WebGL.
 const MonadOrb = lazy(() => import('./components/MonadOrb.jsx'));
 
 const reducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const queryFlag = (name) => {
+  if (typeof window === 'undefined' || !window.location) return false;
+  try { return new URLSearchParams(window.location.search).get(name) === '1'; } catch { return false; }
+};
 
 const isMobile = () => {
   if (typeof navigator === 'undefined') return false;
@@ -42,11 +48,17 @@ class OrbBoundary extends Component {
   render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 
-function HeroSigil({ theorem, stage }) {
-  const [allow3D, setAllow3D] = useState(() => hasWebGL() && !reducedMotion() && !isMobile());
+function HeroSigil({ theorem, stage, continuity, force2D = false, diagnostics = false }) {
+  const [allow3D, setAllow3D] = useState(() => hasWebGL() && !reducedMotion() && !isMobile() && !force2D);
   const [orbMounted, setOrbMounted] = useState(false);
   const containerRef = useRef(null);
   const fallback = <ParticleSigil currentShape={theorem.shape} theoremId={theorem.id} />;
+  const imprint = continuity?.imprint || 0;
+  const direction = continuity?.direction || 0;
+
+  useEffect(() => {
+    if (force2D) setAllow3D(false);
+  }, [force2D]);
 
   useEffect(() => {
     if (!allow3D || !orbMounted) return;
@@ -61,14 +73,30 @@ function HeroSigil({ theorem, stage }) {
     return () => clearTimeout(timer);
   }, [allow3D, orbMounted]);
 
-  if (!allow3D) return fallback;
+  const shellStyle = {
+    '--ritual-imprint': imprint.toFixed(3),
+    '--ritual-direction': direction.toFixed(3),
+  };
+
+  if (!allow3D) {
+    return (
+      <div className={`ritual-return-shell ${imprint > 0.04 ? 'is-remembered' : ''}`} style={shellStyle}>
+        {fallback}
+        {diagnostics && <div className="renderer-diagnostic">renderer: 2D particle · force2d:{force2D ? 1 : 0}</div>}
+      </div>
+    );
+  }
+
   return (
-    <div className="scrying-mirror" style={{ cursor: 'grab' }} ref={containerRef}>
-      <OrbBoundary fallback={fallback}>
-        <Suspense fallback={fallback}>
-          <MonadOrb theoremId={theorem.id} stage={stage} onReady={() => setOrbMounted(true)} />
-        </Suspense>
-      </OrbBoundary>
+    <div className={`ritual-return-shell ${imprint > 0.04 ? 'is-remembered' : ''}`} style={shellStyle}>
+      <div className="scrying-mirror" style={{ cursor: 'grab' }} ref={containerRef}>
+        <OrbBoundary fallback={fallback}>
+          <Suspense fallback={fallback}>
+            <MonadOrb theoremId={theorem.id} stage={stage} onReady={() => setOrbMounted(true)} />
+          </Suspense>
+        </OrbBoundary>
+      </div>
+      {diagnostics && <div className="renderer-diagnostic">renderer: 3D orb · force2d:0</div>}
     </div>
   );
 }
@@ -91,6 +119,10 @@ export default function App() {
   const audioRef = useRef(null);
   const stage = stageForTheorem(item.id);
   const palette = getPalette(item.id);
+  const ritual = useMirrorRitual(item.id);
+  const continuity = ritual.continuity;
+  const force2D = queryFlag('force2d');
+  const diagnostics = queryFlag('diag');
 
   useEffect(() => {
     document.title = `Monas Hieroglyphica — ${item.title}`;
@@ -111,6 +143,15 @@ export default function App() {
     }
   };
 
+  const selectView = (nextView) => {
+    setViewMode(nextView);
+    if (nextView !== 'theorem' && ritual.memoryCount > 0 && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('monas:ritual-register', {
+        detail: continuityRegisterDetail(item.id, nextView, ritual),
+      }));
+    }
+  };
+
   const switchTheorem = (id) => {
     if (id === active || transition) return;
     setTransition(true);
@@ -123,7 +164,7 @@ export default function App() {
   };
 
   const toggleExegesisViaSigil = () => {
-    setViewMode((prev) => (prev === 'exegesis' ? 'theorem' : 'exegesis'));
+    selectView(viewMode === 'exegesis' ? 'theorem' : 'exegesis');
   };
 
   return (
@@ -136,9 +177,8 @@ export default function App() {
       ) : (
         <div className={`stage-${stage.id} stage-veil-transition min-h-screen relative flex flex-col items-center justify-start py-6 md:py-12 px-2 md:px-8`}>
           <MuteButton muted={isMuted} onToggle={toggleAudio} />
-          <RitualApparition theoremId={item.id} active={transition} />
+          <SafeRitualApparition theoremId={item.id} active={transition} />
 
-          {/* Stage indicator — the operator's place on the alchemical ascent */}
           <div className="fixed top-4 left-4 z-50 text-left pointer-events-none">
             <span className="font-blackletter text-[var(--ink-gold)] text-lg glow-gold block leading-none">{stage.label}</span>
             <span className="font-medieval text-[var(--text-muted)] text-[0.6rem] tracking-[0.2em] uppercase opacity-70">{stage.latin}</span>
@@ -171,15 +211,20 @@ export default function App() {
             </header>
 
             <div className="flex justify-center w-full my-6 md:my-10 relative z-20 animate-float animate-pulse-glow">
-              <HeroSigil theorem={item} stage={stage.id} />
+              <HeroSigil
+                theorem={item}
+                stage={stage.id}
+                continuity={continuity}
+                force2D={force2D}
+                diagnostics={diagnostics}
+              />
             </div>
 
-            {/* View selector — the four registers of the Work */}
             <div className="flex justify-center gap-2 md:gap-4 mb-6 flex-wrap">
               {VIEWS.map((v) => (
                 <button
                   key={v.id}
-                  onClick={() => setViewMode(v.id)}
+                  onClick={() => selectView(v.id)}
                   className={`font-medieval text-xs md:text-sm tracking-[0.2em] uppercase px-3 md:px-5 py-2 rounded border transition-all ${
                     viewMode === v.id
                       ? 'border-[var(--ink-gold)] text-[var(--ink-gold)] glow-gold bg-[var(--ink-gold)]/5'
@@ -207,11 +252,15 @@ export default function App() {
                 </h2>
 
                 {(viewMode === 'theorem' || viewMode === 'exegesis') && (
-                  <div className="text-lg md:text-2xl leading-[1.7] md:leading-[1.8] text-justify drop-shadow-[0_0_8px_rgba(0,0,0,0.8)] font-bold min-h-[150px] w-full">
+                  <div
+                    className={`text-lg md:text-2xl leading-[1.7] md:leading-[1.8] text-justify drop-shadow-[0_0_8px_rgba(0,0,0,0.8)] font-bold min-h-[150px] w-full ${viewMode === 'exegesis' && ritual.memoryCount > 0 ? 'ritual-register-received' : ''}`}
+                    style={{ '--ritual-register-charge': viewMode === 'exegesis' ? continuity.registerResonance : 0 }}
+                  >
                     <KineticText
                       text={viewMode === 'exegesis' ? item.exegesis : item.text}
                       variant={viewMode === 'exegesis' ? 'exegesis' : 'theorem'}
                       revealKey={`${item.id}-${viewMode}`}
+                      initialReveal={viewMode === 'exegesis' ? continuity.exegesisReveal : 0}
                     />
                   </div>
                 )}
@@ -231,7 +280,6 @@ export default function App() {
                   />
                 )}
 
-                {/* Mobile scholar margin */}
                 <div className="block lg:hidden mt-8 pt-8 border-t border-[#3a2e1d]/40 w-full">
                   <ScholarMargin theorem={item} heading="Scholar's Margin" />
                 </div>
