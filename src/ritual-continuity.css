@@ -39,8 +39,8 @@
 .mirror-return-imprint {
   --mirror-return-opacity: 0;
   --mirror-return-rotation: 0deg;
+  --mirror-return-end-rotation: 360deg;
   --mirror-return-scale: 1;
-  --mirror-return-direction: 1;
   --mirror-return-pulse: 0.2;
   position: absolute;
   inset: 8.5%;
@@ -240,7 +240,7 @@
 
 @keyframes mirror-return-turn {
   from { transform: rotate(var(--mirror-return-rotation)) scale(var(--mirror-return-scale)); }
-  to { transform: rotate(calc(var(--mirror-return-rotation) + 360deg * var(--mirror-return-direction))) scale(var(--mirror-return-scale)); }
+  to { transform: rotate(var(--mirror-return-end-rotation)) scale(var(--mirror-return-scale)); }
 }
 
 @keyframes mirror-return-projection-depth {
