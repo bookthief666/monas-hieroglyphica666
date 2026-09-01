@@ -47,10 +47,11 @@ assert.match(mirrorMemory, /catch\s*\{[\s\S]*return null;/, 'Persistent memory f
 assert.match(verifyWorkflow, /agent\/release-candidate-polish/, 'Release candidate branch must receive verification CI');
 assert.match(verifyWorkflow, /pull_request:[\s\S]*branches:\s*\[main\]/, 'Pull requests into main must receive verification CI');
 assert.match(verifyWorkflow, /- main/, 'Main pushes must receive verification CI');
+assert.match(verifyWorkflow, /run:\s*npm run release:check/, 'CI must execute the strict release gate');
 
 assert.match(deployWorkflow, /push:[\s\S]*branches:\s*\[main\]/, 'Pages deployment must auto-run only from main');
 assert.doesNotMatch(deployWorkflow, /claude\/ecstatic-euler/, 'Obsolete development branches must never auto-deploy');
-assert.match(deployWorkflow, /run:\s*npm run check/, 'Deployment must execute the full release verification contract before upload');
+assert.match(deployWorkflow, /run:\s*npm run release:check/, 'Deployment must execute the strict release gate before upload');
 assert.match(deployWorkflow, /needs:\s*build/, 'Pages deploy must depend on the verified build job');
 
-console.log('Production release audit gate PASS: Pages base/metadata, 24 immutable backgrounds, pinned audio, HTTPS witnesses, guarded persistence, main-only verified deployment.');
+console.log('Production release audit gate PASS: Pages base/metadata, 24 immutable backgrounds, pinned audio, HTTPS witnesses, guarded persistence, strict main-only verified deployment.');
