@@ -12,7 +12,9 @@
     "verify:performance": "node scripts/verify-performance-contract.mjs",
     "verify:release-polish": "node scripts/verify-release-polish.mjs",
     "verify:release-audit": "node scripts/verify-release-audit.mjs",
-    "check": "npm run verify:mirror && npm run verify:performance && npm run verify:release-polish && npm run verify:release-audit && npm run build"
+    "verify:security": "npm audit --omit=dev --audit-level=high",
+    "check": "npm run verify:mirror && npm run verify:performance && npm run verify:release-polish && npm run verify:release-audit && npm run build",
+    "release:check": "npm run check && npm run verify:security"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.0",
