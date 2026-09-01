@@ -1,4 +1,7 @@
 import React from 'react';
+import RitualProjection from './RitualProjection.jsx';
+import { getProjectionSpec } from '../lib/projectionSpec.js';
+import useMirrorRitual from '../lib/useMirrorRitual.js';
 
 // The Theurgic Application — the move from reading to operating. Each theorem's
 // geometric truth is translated into three registers the modern operator can act
@@ -11,11 +14,36 @@ const FACETS = [
 
 export default function ApplicationPanel({ theorem }) {
   const app = theorem.application || {};
+  const projection = getProjectionSpec(theorem.id);
+  const { lastOperation, memoryCount, strongestCharge } = useMirrorRitual(theorem.id);
+  const charge = Math.max(Number(lastOperation?.charge) || 0, Math.min(0.5, strongestCharge * 0.4));
+
   return (
     <div className="w-full max-w-3xl mx-auto">
       <p className="font-medieval text-center text-[var(--ink-red)] text-sm tracking-[0.3em] uppercase mb-8 opacity-80">
         Operatio — to operate the theorem, not merely to read it
       </p>
+
+      {memoryCount > 0 && (
+        <div className="relative overflow-hidden mb-7 rounded-lg border border-[var(--ink-gold)]/20 bg-black/25 px-4 py-3 flex items-center gap-4">
+          <RitualProjection
+            kind={projection.operative}
+            variant="operative"
+            charge={charge}
+            memoryCount={memoryCount}
+            className="w-16 h-16 md:w-20 md:h-20 shrink-0 mix-blend-screen"
+          />
+          <div className="min-w-0">
+            <span className="font-medieval text-[0.65rem] tracking-[0.28em] uppercase text-[var(--ink-gold)] opacity-80">
+              Vestigium Operis
+            </span>
+            <p className="font-roman italic text-[var(--text-muted)] text-sm md:text-base opacity-85 leading-relaxed">
+              The shew-stone retains a residue of this theorem{lastOperation?.mode ? ` — ${lastOperation.mode}` : ''}; the operation below begins from that remembered tension.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-6">
         {FACETS.map((f) => (
           <div
