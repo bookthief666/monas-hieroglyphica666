@@ -1,10 +1,10 @@
 import React from 'react';
 import { stageForTheorem } from '../lib/stages.js';
+import { theoremMemoryImprint } from '../lib/ritualContinuity.js';
 
-// The initiatory ladder. Each numeral is tinted by its alchemical stage so the
-// operator sees the ascent (Nigredo → Albedo → Rubedo) laid out as a path, not
-// as flat pagination. A small mercurial mark ☿ tracks the active theorem.
-export default function TheoremNav({ theorems, active, onSelect }) {
+// The initiatory ladder is also a memory constellation. Worked theorems retain
+// only a faint aureole; there are no checks, counters, completion badges, or XP.
+export default function TheoremNav({ theorems, active, onSelect, memory = null }) {
   const stageColor = {
     nigredo: 'text-[#7a6a8a]',
     albedo: 'text-[#dfe6f0]',
@@ -16,11 +16,19 @@ export default function TheoremNav({ theorems, active, onSelect }) {
         {theorems.map((t) => {
           const stage = stageForTheorem(t.id).id;
           const isActive = active === t.id;
+          const theoremMemory = memory?.theorems?.[String(t.id)] || null;
+          const imprint = theoremMemoryImprint(theoremMemory);
+          const worked = imprint > 0.02;
           return (
-            <li key={t.id} className="relative group shrink-0">
+            <li
+              key={t.id}
+              className={`relative group shrink-0 theorem-memory-node ${worked ? 'is-worked' : ''}`}
+              style={{ '--theorem-memory-imprint': imprint.toFixed(3) }}
+            >
+              {worked && <span className="theorem-memory-orbit" aria-hidden="true" />}
               <button
                 onClick={() => onSelect(t.id)}
-                title={`${t.title} — ${stage}`}
+                title={`${t.title} — ${stage}${worked ? ' — residue retained' : ''}`}
                 className={`font-roman font-bold text-xl md:text-2xl transition-all duration-500 ease-out w-10 h-10 md:w-12 md:h-12 flex items-center justify-center ${
                   isActive
                     ? 'glow-gold transform scale-125'
