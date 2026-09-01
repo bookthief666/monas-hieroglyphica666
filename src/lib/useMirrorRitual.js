@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { readMirrorMemory } from './mirrorMemory.js';
+import { deriveRitualContinuity } from './ritualContinuity.js';
 
 export default function useMirrorRitual(theoremId) {
   const id = Number(theoremId) || 1;
@@ -38,9 +39,15 @@ export default function useMirrorRitual(theoremId) {
     [id, memory],
   );
 
+  const continuity = useMemo(
+    () => deriveRitualContinuity({ lastOperation, theoremMemory }),
+    [lastOperation, theoremMemory],
+  );
+
   return {
     lastOperation,
     theoremMemory,
+    continuity,
     memoryCount: Number(theoremMemory?.count) || 0,
     strongestCharge: Number(theoremMemory?.strongestCharge) || 0,
     totalOperations: Number(memory?.totalOperations) || 0,
