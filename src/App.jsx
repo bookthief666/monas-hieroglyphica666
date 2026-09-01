@@ -8,6 +8,7 @@ import ParticleSigil from './components/ParticleSigil.jsx';
 import ExegesisSeal from './components/ExegesisSeal.jsx';
 import SafeRitualApparition from './components/SafeRitualApparition.jsx';
 import RegisterMetamorphosis from './components/RegisterMetamorphosis.jsx';
+import MirrorReturnImprint from './components/MirrorReturnImprint.jsx';
 import KineticText from './components/KineticText.jsx';
 import ScholarMargin from './components/ScholarMargin.jsx';
 import ApplicationPanel from './components/ApplicationPanel.jsx';
@@ -83,6 +84,7 @@ function HeroSigil({ theorem, stage, continuity, force2D = false, diagnostics = 
     return (
       <div className={`ritual-return-shell ${imprint > 0.04 ? 'is-remembered' : ''}`} style={shellStyle}>
         {fallback}
+        <MirrorReturnImprint theoremId={theorem.id} continuity={continuity} />
         {diagnostics && <div className="renderer-diagnostic">renderer: 2D particle · force2d:{force2D ? 1 : 0}</div>}
       </div>
     );
@@ -97,6 +99,7 @@ function HeroSigil({ theorem, stage, continuity, force2D = false, diagnostics = 
           </Suspense>
         </OrbBoundary>
       </div>
+      <MirrorReturnImprint theoremId={theorem.id} continuity={continuity} />
       {diagnostics && <div className="renderer-diagnostic">renderer: 3D orb · force2d:0</div>}
     </div>
   );
