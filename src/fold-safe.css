@@ -1,0 +1,85 @@
+/* Samsung/Android compositor safety.
+   The Fold keeps the same grimoire composition while avoiding the blend/filter
+   combinations that can intermittently wash the full page or shew-stone white. */
+.fold-safe-compositor .bg-animate {
+  mix-blend-mode: normal !important;
+}
+
+.fold-safe-compositor .shimmer-overlay {
+  mix-blend-mode: normal !important;
+  opacity: 0.12 !important;
+  animation-duration: 24s !important;
+}
+
+.fold-safe-compositor .parchment-panel {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.fold-safe-compositor .animate-pulse-glow {
+  animation: none !important;
+  filter: none !important;
+}
+
+.fold-safe-compositor .noise-overlay {
+  opacity: 0.16 !important;
+}
+
+.fold-safe-compositor .living-black-mirror {
+  isolation: isolate;
+  contain: paint;
+  background: radial-gradient(circle at 48% 44%, #0a0808 0%, #020202 56%, #000 100%) !important;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.fold-safe-compositor .living-black-mirror > canvas {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 2 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  background: transparent !important;
+}
+
+.fold-safe-compositor .mirror-depth-volume,
+.fold-safe-compositor .mirror-inner-rim {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.fold-safe-compositor .mirror-depth-volume {
+  z-index: 1;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(80, 45, 30, 0.06) 0%, rgba(10, 7, 8, 0.14) 38%, rgba(0, 0, 0, 0.58) 100%);
+  box-shadow: inset 0 0 48px rgba(0, 0, 0, 0.95);
+}
+
+.fold-safe-compositor .mirror-inner-rim {
+  z-index: 3;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 223, 115, 0.12),
+    inset 0 0 24px rgba(255, 68, 68, 0.04);
+}
+
+.renderer-diagnostic {
+  position: fixed;
+  left: 10px;
+  bottom: 10px;
+  z-index: 120;
+  pointer-events: none;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 223, 115, 0.35);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.82);
+  color: #ffdf73;
+  font: 10px/1.3 monospace;
+  letter-spacing: 0.04em;
+}
