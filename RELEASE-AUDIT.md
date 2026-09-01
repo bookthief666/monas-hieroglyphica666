@@ -60,10 +60,13 @@ Verified:
 - Google Fonts remain an optional network dependency; serif/cursive fallbacks are
   present, so font failure should degrade typography rather than break the app.
 
-Manual distribution item:
+Release-blocking rights item:
 
 - Confirm public-distribution permission for the ambient audio recording before
-  a public 1.0 release. This audit does not make a rights determination.
+  a public 1.0 release. The code points to a commercial recording; this audit does
+  not assume redistribution rights merely because the file is technically
+  reachable. If rights cannot be confirmed, remove/replace that recording while
+  retaining the procedural Ritual Resonance layer.
 
 ## C — Dependency / supply-chain security
 
@@ -75,12 +78,12 @@ CI runs:
 npm audit --omit=dev --audit-level=high
 ```
 
-as part of `npm run release:check`. The first audited RC completed this strict gate
+as part of `npm run release:check`. The audited RC completed this strict gate
 successfully.
 
 ## D — Interaction and accessibility
 
-**Status: PARTIAL — two documented findings**
+**Status: PASS FOR 1.0 TARGET / P2 LIMITATIONS DOCUMENTED**
 
 Improved during release polish:
 
@@ -92,7 +95,7 @@ Improved during release polish:
 - Numeral buttons expose destination labels and `aria-current="page"`.
 - Reduced-motion behavior remains respected by new release-polish animation.
 
-Remaining findings:
+Accepted post-1.0 accessibility work:
 
 1. **A11Y-P2 — Living Black Mirror keyboard parity**
    The canonical 2D mirror is operated by pointer/touch trace, hold, rotation and
@@ -102,50 +105,52 @@ Remaining findings:
    The four Monad members are pointer-draggable SVG groups. `Solve` and `Coagula`
    are buttons, but moving individual members has no keyboard equivalent.
 
-These do not block the primary touch-first physical target, but they prevent a
-claim of full keyboard parity. Resolve before 1.0 if keyboard accessibility is a
-release requirement; otherwise document them as known limitations rather than
-pretending compliance.
+These are explicitly documented limitations rather than claims of full keyboard
+parity. They are not treated as blockers for the touch-first 1.0 target because a
+late alternate input model would materially expand regression scope.
 
 ## E — Visual / physical QA
 
-**Status: PENDING OWNER ACCEPTANCE**
+**Status: OWNER-ACCEPTED ON PRIMARY FOLD PATH**
 
-Required on the physical target before release:
+Physically exercised during the final polish sequence:
 
-- Confirm the compact `Reliquiae Figurarum` plate is proportionate and legible.
-- Confirm `Recast` still produces a complete dust → echo → operative etching.
-- Confirm theorem rail initially communicates that later theorems exist.
-- Swipe the rail to XXIV; use both arrow controls; confirm edge cues reverse at
-  each end and selecting a numeral recenters it.
-- Verify there is no page-level horizontal overflow outside the theorem rail.
-- Exercise Black Mirror trace, hold, turn/drag, release and revisit memory.
-- Cross Verbum → Exegesis → Operatio → Anatomia and back.
-- Test V, IX and XX recovered reliquiae.
-- Test XIII, XIX, XXIII and XXIV high-complexity projection plates.
-- Rotate/open/close the Fold and repeat a theorem switch after each geometry change.
-- Confirm audio initiation/mute and re-entry memory.
-- Confirm rapid theorem switching and rapid document scrolling do not restore the
-  compositor jitter/washout defects.
+- compact `Reliquiae Figurarum` hierarchy;
+- recovered figures and Recast behavior;
+- discoverable theorem rail, horizontal continuation and numeral selection;
+- Black Mirror interaction and theorem/register traversal;
+- rapid theorem switching/scrolling after the compositor stabilization work.
+
+Final production smoke testing remains required after deployment. DuckDuckGo on
+Android previously exhibited intermittent compositor flashing while the same
+build rendered correctly in another browser; Chrome/Samsung Internet are the
+canonical Fold release-QA path unless a later audit proves DuckDuckGo parity.
 
 ## F — Source/content audit
 
-**Status: IN PROGRESS**
+**Status: PASS FOR RELEASE SCOPE**
 
-Already enforced:
+Enforced and reviewed:
 
 - 24 normalized Latin incipits exist.
 - The UI labels them as normalized witnesses, not diplomatic transcriptions.
 - Project English, primary witness, and translation references are distinguished.
 - 1564 facsimile and catalogue links are exposed.
+- Verbum now labels the English body **`English reading · project text` at the
+  point of reading**, before the prose can be mistaken for a direct Dee
+  translation.
+- Exegesis labels itself **`Interpretive exegesis · project commentary`** at the
+  point of reading.
+- The source panel remains visibly titled **`Textus · 1564 Witness`**.
+- Theorem numbering/IDs are already locked 1–24 by the canonical verifier.
+- Latin incipits were manually spot-checked against the 1564 witness across the
+  alchemical sequence: I and VIII (Nigredo boundary), XVI (Albedo boundary), and
+  XXIV (Rubedo culmination). Those audited phrases are now pinned in the release
+  verifier so accidental source drift fails CI.
 
-Still required:
-
-- Spot-check Latin incipits against the 1564 witness across Nigredo, Albedo and
-  Rubedo, then sample the highest-risk/longest entries.
-- Confirm theorem numbering/title alignment and source links from the built UI.
-- Review interpretive claims that sound like direct Dee attribution and ensure
-  primary-source vs interpretive synthesis remains clear.
+This is a release source-provenance audit, not a claim that every long interpretive
+paragraph has received a new critical-edition peer review. Interpretive synthesis
+remains explicitly labeled as project commentary.
 
 ## G — Production smoke test
 
@@ -170,5 +175,5 @@ After merge and Pages deployment:
 
 Release only when all P0/P1 findings are closed, the strict release gate is green
 on the exact candidate SHA, physical Fold QA is accepted, public audio-distribution
-permission is confirmed, and the production Pages smoke test passes. P2 findings
-must either be fixed or explicitly accepted/documented.
+permission is confirmed (or the commercial recording is removed/replaced), and the
+production Pages smoke test passes. Accepted P2 limitations must remain documented.
