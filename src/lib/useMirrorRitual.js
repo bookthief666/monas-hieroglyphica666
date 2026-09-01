@@ -13,7 +13,7 @@ export default function useMirrorRitual(theoremId) {
     const refresh = () => {
       const next = readMirrorMemory();
       setMemory(next);
-      if (Number(next?.last?.theoremId) === id) setLastOperation(next.last);
+      setLastOperation(Number(next?.last?.theoremId) === id ? next.last : null);
     };
 
     const onOperation = (event) => {
@@ -21,7 +21,7 @@ export default function useMirrorRitual(theoremId) {
       if (!detail) return;
       const next = readMirrorMemory();
       setMemory(next);
-      if (Number(detail.theoremId) === id) setLastOperation(detail);
+      setLastOperation(Number(detail.theoremId) === id ? detail : null);
     };
 
     refresh();
